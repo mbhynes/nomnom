@@ -6,6 +6,7 @@
   "permissions": [
     "<all_urls>",
     "webRequest",
+    "webNavigation",
     "webRequestBlocking",
     "activeTab",
     "storage"
@@ -16,8 +17,7 @@
   },
   "content_scripts": [{
     "matches":  ["<all_urls>"],
-    "js": ["require.js", "filename.js", "filesaver.js"],
-    "scripts": ["click.js"],
+    "js": ["require.js", "filename.js", "filesaver.js", "click.js"],
     "all_frames": true
   }],
   "options_ui": {
