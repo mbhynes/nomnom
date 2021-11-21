@@ -23,7 +23,8 @@ function clickHandler(e) {
 // document.addEventListener("click", clickHandler);
 // chrome.browserAction.onClicked.addListener(clickHandler);
 
-// ugh none of this shit works
+
+//new comment by mitchell
 window.addEventListener('load', function() {
   console.log("Adding handlers");
   var imgs = document.getElementsByTagName("img");
