@@ -40,7 +40,7 @@ chrome.webRequest.onCompleted.addListener(contentHandler, {urls: [ "<all_urls>" 
 
 function contentHandler(details){
   fout = getFileName(details.url, 'test', '0');
-  // console.log("Saving " + details.url + " to: " + fout);
+  console.log("Saving " + details.url + " to: " + fout);
   // console.log(document.images);
   // var search_string = "img[src*='" + details.url + "']";
   // var element = document.querySelector(search_string);
