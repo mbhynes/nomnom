@@ -36,8 +36,6 @@ chrome.webRequest.onCompleted.addListener(contentHandler, {
  * }
  */
 function contentHandler(details){
-  console.debug("Handling web request:", details);
-
   // Create a cross-header request to GET the image
   // This will typically not actually result in a request,
   // however since the image will be retrieved from cache.
