@@ -9,20 +9,22 @@
     "webNavigation",
     "webRequestBlocking",
     "activeTab",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "background": {
-    "scripts": ["require.js", "filename.js", "filesaver.js", "contentScript.js"],
+    "scripts": [
+      "background.js",
+      "utils.js"
+     ],
     "persistent": true
   },
   "content_scripts": [{
+    "run_at": "document_start",
     "matches":  ["<all_urls>"],
-    "js": ["require.js", "filename.js", "filesaver.js", "click.js"],
+    "js": [
+      "contentScript.js"
+    ],
     "all_frames": true
-  }],
-  "options_ui": {
-    "page": "options.html",
-    "open_in_tab": false
-  },
-  "browser_action": {}
+  }]
 }
