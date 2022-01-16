@@ -1,7 +1,7 @@
 {
-  "name": "Chrome webrequest test",
+  "name": "nomnom",
   "version": "0.1",
-  "description": "A test for webrequest",
+  "description": "An image downloader and labeller extension for building image classification datasets",
   "manifest_version": 2,
   "permissions": [
     "<all_urls>",
