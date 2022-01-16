@@ -68,7 +68,7 @@ function contentHandler(details){
         }
       };
     } else {
-      console.error("Failed to retrieve image:", details.url);
+      console.error("Failed to download image:", details.url);
     }
   }, false);
 
