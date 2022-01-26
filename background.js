@@ -72,6 +72,36 @@ function contentHandler(details){
     }
   }, false);
 
+  xhr.addEventListener("load", function () {
+    if (xhr.status === 200) {
+      blob = xhr.response;
+      // var fd = new FormData();
+      // fd.append("file", blob);
+      // fd.append("file", blob);
+      let payload = {
+        url: keyFromUrl(details.url),
+        initiator: details.initiator,
+        requested_at: details.timeStamp,
+        // image: blob,
+        is_clicked: false,
+        first_clicked_at: null
+      };
+
+      // var log_xhr = new XMLHttpRequest();
+      // log_xhr.resonseType = 'json';
+      // log_xhr.open("GET", 'http://www.hynescorp.com', true);
+      // log_xhr.setRequestHeader("Content-Type", 'application/json;charset=UTF-8');
+      // console.debug("Posting payload to hynescorp:", payload);
+      // log_xhr.addEventListener("load", function () {
+      //   console.debug("Response:", log_xhr.status, log_xhr.response);
+      // })
+      // log_xhr.send(JSON.stringify(payload))
+      // log_xhr.send();
+    }
+  }, false);
+
+
+
   xhr.send();
 };
 
