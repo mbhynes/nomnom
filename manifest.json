@@ -3,6 +3,9 @@
   "version": "0.1",
   "description": "An image downloader and labeller extension for building image classification datasets",
   "manifest_version": 2,
+  "host_permissions": [
+    "http://127.0.0.1"
+  ],
   "permissions": [
     "<all_urls>",
     "webRequest",
@@ -26,5 +29,8 @@
       "contentScript.js"
     ],
     "all_frames": true
-  }]
+  }],
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
 }

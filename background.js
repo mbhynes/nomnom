@@ -87,6 +87,11 @@ function contentHandler(details){
         first_clicked_at: null
       };
 
+      const token = chrome.storage.local.get(["token"], function (result) {
+        console.log("Retrieved token from local storage:", result.token);
+      });
+
+
       // var log_xhr = new XMLHttpRequest();
       // log_xhr.resonseType = 'json';
       // log_xhr.open("GET", 'http://www.hynescorp.com', true);
