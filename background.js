@@ -1,3 +1,5 @@
+const IMAGE_POST_ENDPOINT = "http://127.0.0.1:8000/api/image/"
+
 // Instantiate an indexedDB for the extension to store accumulating image click facts.
 var db;
 var request = window.indexedDB.open('imgdb', 1);request.onerror = function(event) {
@@ -74,39 +76,37 @@ function contentHandler(details){
 
   xhr.addEventListener("load", function () {
     if (xhr.status === 200) {
-      blob = xhr.response;
-      // var fd = new FormData();
-      // fd.append("file", blob);
-      // fd.append("file", blob);
       let payload = {
         url: keyFromUrl(details.url),
         initiator: details.initiator,
         requested_at: details.timeStamp,
-        // image: blob,
+        image: xhr.response,
         is_clicked: false,
         first_clicked_at: null
       };
 
-      const token = chrome.storage.local.get(["token"], function (result) {
+      chrome.storage.local.get(["token"], function (result) {
         console.log("Retrieved token from local storage:", result.token);
+
+        var log_xhr = new XMLHttpRequest();
+        log_xhr.open("POST", IMAGE_POST_ENDPOINT, true);
+        log_xhr.responseType = 'json';
+        log_xhr.setRequestHeader("Content-Type", 'application/json;charset=UTF-8');
+        log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
+        console.debug("Posting payload with token:", result.token);
+        console.debug("Blob:", blob);
+        log_xhr.addEventListener("load", function () {
+          if (log_xhr.status === 200) {
+            console.debug("Successful POST:", log_xhr.status, log_xhr.response);
+          } else {
+            console.error("Encountered error on POST:", log_xhr.status, log_xhr.response);
+          }
+        })
+        log_xhr.send(JSON.stringify(payload));
+        // log_xhr.send(payload);
       });
-
-
-      // var log_xhr = new XMLHttpRequest();
-      // log_xhr.resonseType = 'json';
-      // log_xhr.open("GET", 'http://www.hynescorp.com', true);
-      // log_xhr.setRequestHeader("Content-Type", 'application/json;charset=UTF-8');
-      // console.debug("Posting payload to hynescorp:", payload);
-      // log_xhr.addEventListener("load", function () {
-      //   console.debug("Response:", log_xhr.status, log_xhr.response);
-      // })
-      // log_xhr.send(JSON.stringify(payload))
-      // log_xhr.send();
     }
   }, false);
-
-
-
   xhr.send();
 };
 
