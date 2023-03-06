@@ -3,7 +3,7 @@ const IMAGE_POST_ENDPOINT = "http://127.0.0.1:8000/api/image/"
 // Instantiate an indexedDB for the extension to store accumulating image click facts.
 var db;
 var request = window.indexedDB.open('imgdb', 1);request.onerror = function(event) {
-  console.error("Why didn't you allow my web app to use IndexedDB?!");
+  console.error("indexedDB could not be opened in the extension..");
 };
 request.onsuccess = function(event) {
   db = event.target.result;
@@ -77,21 +77,31 @@ function contentHandler(details){
   xhr.addEventListener("load", function () {
     if (xhr.status === 200) {
       let payload = {
-        url: keyFromUrl(details.url),
-        initiator: details.initiator,
+        url: details.url,
+        referrer: details.initiator,
         requested_at: details.timeStamp,
-        image: xhr.response,
         is_clicked: false,
         first_clicked_at: null
       };
 
-      chrome.storage.local.get(["token"], function (result) {
-        console.log("Retrieved token from local storage:", result.token);
+      console.log("Posting payload:", payload);
 
+      chrome.storage.local.get(["token"], function (result) {
         var log_xhr = new XMLHttpRequest();
+        var payload_form = new FormData();
+        for (const key in payload) {
+          payload_form.set(key, payload[key]);
+        }
+        payload_form.append(
+          'img',
+          xhr.response,
+          // new Blob([xhr.response], {"type": imageTypeFromUrl(details.url)}),
+          // details.url
+          "file." + imageTypeFromUrl(details.url)
+        );
+
         log_xhr.open("POST", IMAGE_POST_ENDPOINT, true);
         log_xhr.responseType = 'json';
-        log_xhr.setRequestHeader("Content-Type", 'application/json;charset=UTF-8');
         log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
         console.debug("Posting payload with token:", result.token);
         console.debug("Blob:", blob);
@@ -102,8 +112,7 @@ function contentHandler(details){
             console.error("Encountered error on POST:", log_xhr.status, log_xhr.response);
           }
         })
-        log_xhr.send(JSON.stringify(payload));
-        // log_xhr.send(payload);
+        log_xhr.send(payload_form);
       });
     }
   }, false);

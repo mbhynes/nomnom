@@ -20,3 +20,22 @@ function keyFromUrl(src) {
     console.error("Failed to parse url: " + src, error);
   }
 }
+
+function imageTypeFromUrl(src) {
+  try {
+    const url = new URL(src);
+    var filename = '';
+    switch (url.hostname) {
+      case "encrypted-tbn0.gstatic.com":
+        filename = url.searchParams.get('q');
+      case "external-content.duckduckgo.com":
+        filename = url.searchParams.get('u');
+      default:
+        filename = url.pathname;
+    }
+    return filename.split('.').pop()
+  } catch (error) {
+    console.error("Failed to parse url: " + src, error);
+    return ''
+  }
+}
