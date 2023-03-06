@@ -26,5 +26,8 @@
       "contentScript.js"
     ],
     "all_frames": true
-  }]
+  }],
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
 }

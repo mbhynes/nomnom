@@ -1,7 +1,9 @@
+const IMAGE_POST_ENDPOINT = "http://127.0.0.1:8000/api/image/"
+
 // Instantiate an indexedDB for the extension to store accumulating image click facts.
 var db;
 var request = window.indexedDB.open('imgdb', 1);request.onerror = function(event) {
-  console.error("Why didn't you allow my web app to use IndexedDB?!");
+  console.error("indexedDB could not be opened in the extension..");
 };
 request.onsuccess = function(event) {
   db = event.target.result;
@@ -72,6 +74,48 @@ function contentHandler(details){
     }
   }, false);
 
+  xhr.addEventListener("load", function () {
+    if (xhr.status === 200) {
+      let payload = {
+        url: details.url,
+        referrer: details.initiator,
+        requested_at: details.timeStamp,
+        is_clicked: false,
+        first_clicked_at: null
+      };
+
+      console.log("Posting payload:", payload);
+
+      chrome.storage.local.get(["token"], function (result) {
+        var log_xhr = new XMLHttpRequest();
+        var payload_form = new FormData();
+        for (const key in payload) {
+          payload_form.set(key, payload[key]);
+        }
+        payload_form.append(
+          'img',
+          xhr.response,
+          // new Blob([xhr.response], {"type": imageTypeFromUrl(details.url)}),
+          // details.url
+          "file." + imageTypeFromUrl(details.url)
+        );
+
+        log_xhr.open("POST", IMAGE_POST_ENDPOINT, true);
+        log_xhr.responseType = 'json';
+        log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
+        console.debug("Posting payload with token:", result.token);
+        console.debug("Blob:", blob);
+        log_xhr.addEventListener("load", function () {
+          if (log_xhr.status === 200) {
+            console.debug("Successful POST:", log_xhr.status, log_xhr.response);
+          } else {
+            console.error("Encountered error on POST:", log_xhr.status, log_xhr.response);
+          }
+        })
+        log_xhr.send(payload_form);
+      });
+    }
+  }, false);
   xhr.send();
 };
 
