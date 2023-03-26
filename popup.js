@@ -1,81 +1,76 @@
-const TOKEN_POST_ENDPOINT = "http://127.0.0.1:8000/api/auth-token/"
-const TOKEN_CHECK_ENDPOINT = "http://127.0.0.1:8000/api/auth-check/"
+const caption_input = document.getElementById('caption-input');
+const caption_output = document.getElementById('caption-output');
+const k1 = document.getElementById("key1");
+const k2 = document.getElementById("key2");
+const k3 = document.getElementById("key3");
+const v1 = document.getElementById("val1");
+const v2 = document.getElementById("val2");
+const v3 = document.getElementById("val3");
 
-function setBadgeState(state) {
-  if (state === "loading") {
-    chrome.browserAction.setBadgeText({"text": "..."});
-    chrome.browserAction.setBadgeBackgroundColor({"color": "#666666"});
-  } else if (state === "success") {
-    chrome.browserAction.setBadgeText({"text": "ok"});
-    chrome.browserAction.setBadgeBackgroundColor({"color": "#00AA00"});
-  } else {
-    chrome.browserAction.setBadgeText({"text": "x"});
-    chrome.browserAction.setBadgeBackgroundColor({"color": "#AA0000"});
-  }
-}
 
-function isTokenValid(token) {
-  var result = false;
-  var xhr = new XMLHttpRequest();
-  // submit the GET request synchronously to block on receipt of token validation
-  xhr.open("GET", TOKEN_CHECK_ENDPOINT, false);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.setRequestHeader('Authorization', 'Token ' + token);
-  xhr.addEventListener("load", function () {
-    if (xhr.status === 200) {
-      console.debug("Provided token was validated. Received response from server:");
-      console.debug(xhr.response);
-      result = true;
-    } else {
-      console.error("Provided token was invalid. Received response from server:");
-      console.error(xhr.response);
+function renderCaption() {
+  const val = chrome.storage.local.get(["template_variables"], function (result) {
+    console.log(result);
+    var rendered = caption_input.value;
+    for (var i = 0; i < result.template_variables.length; i++) {
+      rendered = rendered.replaceAll(result.template_variables[i].key, result.template_variables[i].value);
     }
-  });
-  xhr.send();
-  return (xhr.status === 200);
-}
-
-
-function checkLocalToken() {
-  setBadgeState("loading");
-  const token = chrome.storage.local.get(["token"], function (result) {
-    console.debug("Retrieved token from local storage:", result.token);
-    if (isTokenValid(result.token)) {
-      console.debug("Validated token against: ", TOKEN_CHECK_ENDPOINT);
-      setBadgeState("success");
-    } else {
-      setBadgeState("error");
-      console.error("Token was invalid");
-    }
+    caption_output.value = rendered
   });
 }
-
-function loginAndFetchToken(e) {
-  e.preventDefault();
-  const payload = {
-    "username": e.target.elements.username.value,
-    "password": e.target.elements.password.value,
-  };
-  var xhr = new XMLHttpRequest();
-  xhr.open("POST", TOKEN_POST_ENDPOINT, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.responseType = "json"
-  xhr.addEventListener("load", function () {
-    if (xhr.status === 200) {
-      chrome.storage.local.set({"token": xhr.response["token"]}, function() {
-        console.debug("Saved token to local storage:", xhr.response["token"]);
-      });
-      setBadgeState("success");
-    } else {
-      console.error(xhr.response);
-      setBadgeState("error");
-    }
+function setCaption() {
+  var caption_input = document.getElementById("caption-input");
+  chrome.storage.local.set({"caption": caption_input.value}, function() {
+    console.debug("Saved caption to local storage:", caption_input.value);
   });
-  setBadgeState("loading");
-  xhr.send(JSON.stringify(payload))
+  renderCaption();
+}
+function getCaption() {
+  const val = chrome.storage.local.get(["caption"], function (result) {
+    var caption_input = document.getElementById("caption-input");
+    caption_input.value = result.caption;
+  });
+}
+function setTemplateVariables() {
+  // Save the template variables to local storage in the "template_variables" key
+  chrome.storage.local.set({
+    "template_variables": [
+      {key: document.getElementById("key1").value, value: document.getElementById("val1").value},
+      {key: document.getElementById("key2").value, value: document.getElementById("val2").value},
+      {key: document.getElementById("key3").value, value: document.getElementById("val3").value},
+    ]
+  }, function() {
+    console.debug("Saved template variables to local storage.");
+  });
+  renderCaption();
+}
+function getTemplateVariables() {
+  const val = chrome.storage.local.get(["template_variables"], function (result) {
+    var k1 = document.getElementById("key1");
+    var k2 = document.getElementById("key2");
+    var k3 = document.getElementById("key3");
+    var v1 = document.getElementById("val1");
+    var v2 = document.getElementById("val2");
+    var v3 = document.getElementById("val3");
+    k1.value = result.template_variables[0].key;
+    k2.value = result.template_variables[1].key;
+    k3.value = result.template_variables[2].key;
+    v1.value = result.template_variables[0].value;
+    v2.value = result.template_variables[1].value;
+    v3.value = result.template_variables[2].value;
+  });
 }
 
-const form = document.getElementById('form-login');
-form.addEventListener('submit', loginAndFetchToken);
+// form.addEventListener('submit', loginAndFetchToken);
 
-checkLocalToken();
+caption_input.addEventListener('change', setCaption);
+k1.addEventListener('change', setTemplateVariables);
+k2.addEventListener('change', setTemplateVariables);
+k3.addEventListener('change', setTemplateVariables);
+v1.addEventListener('change', setTemplateVariables);
+v2.addEventListener('change', setTemplateVariables);
+v3.addEventListener('change', setTemplateVariables);
+
+getCaption();
+getTemplateVariables();
+renderCaption();

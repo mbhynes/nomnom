@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html style="width:400px;">
+  <head>
+    <title>Server Authentication</title>
+
+    <link href="popup.css" rel="stylesheet">
+    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body style="width:100%;">
+    <div class="container">
+      <nav class="navbar navbar-dark">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link" href="/popup.html">Image Labels</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="/settings.html">Server Settings</a>
+          </li>
+       </ul>
+      </nav>
+
+
+      <div class="row">
+
+          <form id="form-login" class="form-floating">
+              <div class="form-floating">
+                <input type="url" class="form-control" id="hostname" placeholder="https://yoursite.com/api" value="https://yoursite.com/api">
+                <label for="hostname">Hostname:</label>
+              </div>
+
+              <div class="form-floating">
+                <input type="text" class="form-control" id="username" placeholder="username" value="username">
+                <label for="username">Username:</label>
+              </div>
+              <div class="form-floating">
+                <input type="password" class="form-control" id="password" placeholder="12345" value="12345">
+                <label for="password">Password:</label>
+              </div>
+              <input id="auth-submit" type="submit" value="Submit">
+          </form> 
+
+        <div class="row" id="auth-message-row">
+          <div id="auth-spinner"></div>
+        </div>
+
+      </div>
+    </div>
+  </body>
+
+  <script src="settings.js"></script>
+  <script src="bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+</html>

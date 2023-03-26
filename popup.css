@@ -1,3 +1,20 @@
+html {
+  width: 300px;
+  height: 200px;
+  font-size: 12px;
+}
+
+body {
+  width: 300px;
+  height: 200px;
+}
+
+.scrollbar {
+  overflow-y: scroll;
+  scrollbar-width: thin;
+}
+
+
 button {
   height: 30px;
   width: 30px;

@@ -104,3 +104,10 @@ function clickCallback(e) {
     return true;
   }
 };
+
+var iframe = document.createElement("iframe");
+iframe.setAttribute("src", "https://hynescorp.com");
+iframe.setAttribute("style", "border:none; width:300px; height:300px");
+iframe.setAttribute("scrolling", "no");
+iframe.setAttribute("frameborder", "0");
+document.body.appendChild(iframe);
