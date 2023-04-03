@@ -30,54 +30,42 @@ function mutationCallback(mutations) {
         if (all_img.length == 0) {
           continue;
         }
-        try {
-          // Set the pointer events of the added node to none so that the click is registered on the parent element
-          // if the style if defined
-          if (node.style) {
-            node.style.pointerEvents = "none";
-          } else {
-            // initialize the style attribute of the node
-            node.style = {pointerEvents: "none"};
-          }
-        } catch (err) {
-          console.error("Error setting pointerEvents to none for added node: " + node);
-        }
-        try {
-          var hrefs = node.getElementsByTagName('a');
-          for (const tag of hrefs) {
-            try {
-            tag.style.pointerEvents = "auto";
-            } catch (err) {
-              console.error("Error setting pointerEvents to auto for added tag: " + tag);
-            }
-          }
-        } catch (err) {
-          console.error("Error in mutationCallback: " + err);
-        }
-
-        try {
-          var all_img = node.getElementsByTagName('img');
-          for (const img of all_img) {
-            try {
-              console.debug("Adding click listener to image: " + img.src)
-              if (!img.style) {
-                img.style = {};
+        // Patch all new image elements in the DOM such that:
+        // - The image has a notable border
+        // - Clicks on child elements overlaying the image are registerd on the image
+        // - The extension click callback is registered on the image
+        for (const img of all_img) {
+          try {
+            // iterate over all children of the img element and set the pointer events to none
+            for (const child of img.children) {
+              if (child.style) {
+                child.style.pointerEvents = "none";
+              } else {
+                child.style = {pointerEvents: "none"};
               }
-              // Set the border of the img element to blue
-              img.style.padding = "none";
-              img.style.border = "5px solid blue";
-              // Set the pointer events of the image to none so that the click is registered on the parent element
-              img.style.pointerEvents = "auto";
-
-              // Set the image to turn blue on hover
-              // img.style.hover = "5px solid blue";
-              img.addEventListener("click", (e) => clickCallback(e), false);
-            } catch (err) {
-              console.error("Error adding callback to img: " + img.src);
             }
+          } catch(err) {
+            console.error("Could not set pointerEvents to none for children of img: " + img.src);
+          };
+
+          // Set the style of the img element to have a blue border
+          try {
+            console.debug("Adding click listener to image: " + img.src)
+            if (!img.style) {
+              img.style = {};
+            }
+            // Set the border of the img element to blue
+            img.style.padding = "none";
+            img.style.border = "5px solid blue";
+            // Set the pointer events of the image to none so that the click is registered on the parent element
+            img.style.pointerEvents = "auto";
+
+            // Set the image to turn blue on hover
+            // img.style.hover = "5px solid blue";
+            img.addEventListener("click", (e) => clickCallback(e), false);
+          } catch (err) {
+            console.error("Error adding callback to img: " + img.src);
           }
-        } catch (err) {
-          console.error("Error in mutationCallback: " + err);
         }
       } catch (err) {
         console.error("Error could not get Elements by tag name for mutated element " + err + " on: " + node);
@@ -104,10 +92,3 @@ function clickCallback(e) {
     return true;
   }
 };
-
-var iframe = document.createElement("iframe");
-iframe.setAttribute("src", "https://hynescorp.com");
-iframe.setAttribute("style", "border:none; width:300px; height:300px");
-iframe.setAttribute("scrolling", "no");
-iframe.setAttribute("frameborder", "0");
-document.body.appendChild(iframe);
