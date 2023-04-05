@@ -25,6 +25,9 @@ function mutationCallback(mutations) {
   for (i = 0, len = mutations.length; i < len; i++) {
     mutation = mutations[i];
     for (const node of mutation.addedNodes) {
+      if (node.nodeType != Node.ELEMENT_NODE) {
+        continue;
+      }
       try {
         var all_img = node.getElementsByTagName('img');
         if (all_img.length == 0) {
@@ -83,7 +86,7 @@ function clickCallback(e) {
     var img = e.target;
     img.style.border = "5px solid red";
     console.log("Right-clicked " + img.src);
-    chrome.runtime.sendMessage({url: img.src}, function(response) {
+    chrome.runtime.sendMessage({"type": "image_click", "value": {url: img.src}}, function(response) {
       console.log("Got result:", response);
     });
     return false;

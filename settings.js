@@ -82,6 +82,9 @@ function loginAndFetchToken(e) {
   chrome.storage.local.set({"hostname": hostname}, function() {
     console.debug("Saved hostname to local storage:", hostname);
   });
+  chrome.runtime.sendMessage({
+    'type': 'settings_update', 'value': {'hostname': hostname}
+  });
   const token_post_endpoint = pathJoin(hostname, TOKEN_POST_ENDPOINT);
   console.debug("Posting to endpoint:", token_post_endpoint);
   var xhr = new XMLHttpRequest();

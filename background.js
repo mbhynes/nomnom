@@ -1,4 +1,6 @@
-const IMAGE_POST_ENDPOINT = "http://127.0.0.1:8000/api/image/"
+const IMAGE_POST_ENDPOINT = "image/";
+var hostname = "";
+var caption = "";
 
 // Instantiate an indexedDB for the extension to store accumulating image click facts.
 var db;
@@ -25,6 +27,10 @@ chrome.webRequest.onCompleted.addListener(contentHandler, {
   urls: [ "<all_urls>" ],
   types: ['image']
 }, []);
+
+function pathJoin(base, path) {
+  return [base, path].join('/').replace(/\/+/g, '/');
+}
 
 /**
  * Save downloaded images to the indexedDB with the following schema:
@@ -100,16 +106,17 @@ function contentHandler(details){
           "file." + imageTypeFromUrl(details.url)
         );
 
-        log_xhr.open("POST", IMAGE_POST_ENDPOINT, true);
+        endpoint = pathJoin(hostname, IMAGE_POST_ENDPOINT)
+        log_xhr.open("POST", endpoint, true);
         log_xhr.responseType = 'json';
         log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
         console.debug("Posting payload with token:", result.token);
         console.debug("Blob:", blob);
         log_xhr.addEventListener("load", function () {
           if (log_xhr.status === 200) {
-            console.debug("Successful POST:", log_xhr.status, log_xhr.response);
+            console.debug("Successful POST to: ", endpoint, log_xhr.status, log_xhr.response);
           } else {
-            console.error("Encountered error on POST:", log_xhr.status, log_xhr.response);
+            console.error("Encountered error on POST to ", endpoint, log_xhr.status, log_xhr.response);
           }
         })
         log_xhr.send(payload_form);
@@ -119,6 +126,45 @@ function contentHandler(details){
   xhr.send();
 };
 
+function settingsUpdateHandler(request, sender, sendResponse) {
+  if (request.hostname) {
+    console.log("Received hostname update: " + request.hostname + "");
+    hostname = request.hostname;
+  }
+  if (request.label) {
+    console.log("Received label update: " + request.label + "");
+    label = request.label;
+  }
+
+};
+
+function imageClickHandler(request, sender, sendResponse) {
+  console.debug("Received click message for url: " + request.url);
+  let txn = db.transaction('images', 'readwrite');
+  let obj = txn.objectStore('images');
+  let key = keyFromUrl(request.url);
+  var getRequest = obj.get(key);
+  getRequest.onerror = function() {
+    console.error("dbt retrieval error for key: " + key + " (from url) " + request.url, getRequest.error);
+    sendResponse({result: 'failure', reason: 'url was not in db'});
+  };
+  getRequest.onsuccess = function(event) {
+    var record = event.target.result;
+    console.log("Retrieved record from db: ", record);
+    record.is_clicked = true;
+    record.first_clicked_at = (record.first_clicked_at == null ? Date.now() : record.first_clicked_at);
+    var updateRequest = obj.put(record);
+    updateRequest.onerror = function(event) {
+      console.error("Failed to update record: " + key, updateRequest.error);
+      sendResponse({result: 'failure', reason: updateRequest.error});
+    };
+    updateRequest.onsuccess = function(event) {
+      console.log("Updated record for " + key + " to: ", record);
+      sendResponse({result: 'success', reason: 'Updated successful'});
+    };
+  };
+};
+
 /**
  * Listener to handle click attribution events on the image records.
  * This function will updated the indexedDB records to record whether
@@ -126,29 +172,22 @@ function contentHandler(details){
  */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.debug("Received click message for url: " + request.url);
-    let txn = db.transaction('images', 'readwrite');
-    let obj = txn.objectStore('images');
-    let key = keyFromUrl(request.url);
-    var getRequest = obj.get(key);
-    getRequest.onerror = function() {
-      console.error("dbt retrieval error for key: " + key + " (from url) " + request.url, getRequest.error);
-      sendResponse({result: 'failure', reason: 'url was not in db'});
-    };
-    getRequest.onsuccess = function(event) {
-      var record = event.target.result;
-      console.log("Retrieved record from db: ", record);
-      record.is_clicked = true;
-      record.first_clicked_at = (record.first_clicked_at == null ? Date.now() : record.first_clicked_at);
-      var updateRequest = obj.put(record);
-      updateRequest.onerror = function(event) {
-        console.error("Failed to update record: " + key, updateRequest.error);
-        sendResponse({result: 'failure', reason: updateRequest.error});
-      };
-      updateRequest.onsuccess = function(event) {
-        console.log("Updated record for " + key + " to: ", record);
-        sendResponse({result: 'success', reason: 'Updated successful'});
-      };
-    };
+    if (request.type == "image_click") {
+      imageClickHandler(request.value, sender, sendResponse);
+    } else if (request.type == "settings_update") {
+      settingsUpdateHandler(request.value, sender, sendResponse);
+    }
   }
 );
+
+// Retrieve settings values from storage on start
+chrome.storage.local.get(["hostname"], function (result) {
+  if (result.hostname) {
+    hostname = result.hostname;
+  }
+})
+chrome.storage.local.get(["rendered_caption"], function (result) {
+  if (result.rendered_caption) {
+    label = result.rendered_caption;
+  }
+})

@@ -16,8 +16,13 @@ function renderCaption() {
       rendered = rendered.replaceAll(result.template_variables[i].key, result.template_variables[i].value);
     }
     caption_output.value = rendered
+    chrome.storage.set(['rendered_caption'], rendered);
+    chrome.runtime.sendMessage({
+      'type': 'label_rendered', 'value': {'label': rendered}
+    });
   });
 }
+
 function setCaption() {
   var caption_input = document.getElementById("caption-input");
   chrome.storage.local.set({"caption": caption_input.value}, function() {
@@ -25,12 +30,14 @@ function setCaption() {
   });
   renderCaption();
 }
+
 function getCaption() {
   const val = chrome.storage.local.get(["caption"], function (result) {
     var caption_input = document.getElementById("caption-input");
     caption_input.value = result.caption;
   });
 }
+
 function setTemplateVariables() {
   // Save the template variables to local storage in the "template_variables" key
   chrome.storage.local.set({
@@ -44,14 +51,9 @@ function setTemplateVariables() {
   });
   renderCaption();
 }
+
 function getTemplateVariables() {
   const val = chrome.storage.local.get(["template_variables"], function (result) {
-    var k1 = document.getElementById("key1");
-    var k2 = document.getElementById("key2");
-    var k3 = document.getElementById("key3");
-    var v1 = document.getElementById("val1");
-    var v2 = document.getElementById("val2");
-    var v3 = document.getElementById("val3");
     k1.value = result.template_variables[0].key;
     k2.value = result.template_variables[1].key;
     k3.value = result.template_variables[2].key;
@@ -60,8 +62,6 @@ function getTemplateVariables() {
     v3.value = result.template_variables[2].value;
   });
 }
-
-// form.addEventListener('submit', loginAndFetchToken);
 
 caption_input.addEventListener('change', setCaption);
 k1.addEventListener('change', setTemplateVariables);
