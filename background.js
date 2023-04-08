@@ -1,10 +1,12 @@
 const IMAGE_POST_ENDPOINT = "image/";
 var hostname = "";
 var caption = "";
+var caption_key = "";
 
 // Instantiate an indexedDB for the extension to store accumulating image click facts.
 var db;
-var request = window.indexedDB.open('imgdb', 1);request.onerror = function(event) {
+var request = window.indexedDB.open('imgdb', 1);
+request.onerror = function(event) {
   console.error("indexedDB could not be opened in the extension..");
 };
 request.onsuccess = function(event) {
@@ -20,6 +22,12 @@ request.onupgradeneeded = function(event) {
     var obj = db.createObjectStore('images', {keyPath: 'url'});
     obj.createIndex('url', 'url', {unique: true});
   }
+  if (!db.objectStoreNames.contains('captions')) {
+    var obj = db.createObjectStore('captions', {keyPath: 'key'});
+    // create an index on the string key
+    obj.createIndex('key', 'key', {unique: true});
+  }
+
 };
 
 // Add callbacks on all downloaded images during the session
@@ -126,16 +134,47 @@ function contentHandler(details){
   xhr.send();
 };
 
+function upsert(database, key, payload, onSuccess, onError, mergeFn) {
+  let txn = db.transaction(database, 'readwrite');
+  let obj = txn.objectStore(database);
+  var getRequest = obj.get(key);
+  getRequest.onerror = function() {
+    var updateRequest = obj.put(record);
+    if (onError !== undefined)
+      updateRequest.onerror = onError;
+    if (onSuccess !== undefined)
+      updateRequest.onsuccess = onSuccess;
+  };
+  getRequest.onsuccess = function(event) {
+    var record = {}
+    if (mergeFn === undefined) {
+      record = {...event.target.result, ...payload};
+    } else {
+      record = mergeFn(event.target.result, payload);
+    }
+    var updateRequest = obj.put(record);
+    if (onError !== undefined)
+      updateRequest.onerror = onError;
+    if (onSuccess !== undefined)
+      updateRequest.onsuccess = onSuccess;
+  };
+}
+
+function captionUpdateHandler(request, sender, sendResponse) {
+  if (request.caption) {
+    console.log("Received caption update: " + request.caption + "");
+    caption = request.caption;
+    caption_key = cyrb53hash(caption);
+    console.log(caption_key, caption);
+    upsert("captions", caption_key, {'key': caption_key, 'caption': caption, 'updated_at': Date.now()})
+  }
+}
+
 function settingsUpdateHandler(request, sender, sendResponse) {
   if (request.hostname) {
     console.log("Received hostname update: " + request.hostname + "");
     hostname = request.hostname;
   }
-  if (request.label) {
-    console.log("Received label update: " + request.label + "");
-    label = request.label;
-  }
-
 };
 
 function imageClickHandler(request, sender, sendResponse) {
@@ -176,7 +215,10 @@ chrome.runtime.onMessage.addListener(
       imageClickHandler(request.value, sender, sendResponse);
     } else if (request.type == "settings_update") {
       settingsUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "caption_rendered") {
+      captionUpdateHandler(request.value, sender, sendResponse);
     }
+
   }
 );
 
@@ -188,6 +230,6 @@ chrome.storage.local.get(["hostname"], function (result) {
 })
 chrome.storage.local.get(["rendered_caption"], function (result) {
   if (result.rendered_caption) {
-    label = result.rendered_caption;
+    caption = result.rendered_caption;
   }
 })

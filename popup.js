@@ -16,25 +16,25 @@ function renderCaption() {
       rendered = rendered.replaceAll(result.template_variables[i].key, result.template_variables[i].value);
     }
     caption_output.value = rendered
-    chrome.storage.set(['rendered_caption'], rendered);
+    chrome.storage.local.set({'caption': rendered});
     chrome.runtime.sendMessage({
-      'type': 'label_rendered', 'value': {'label': rendered}
+      'type': 'caption_rendered', 'value': {'caption': rendered}
     });
   });
 }
 
 function setCaption() {
   var caption_input = document.getElementById("caption-input");
-  chrome.storage.local.set({"caption": caption_input.value}, function() {
-    console.debug("Saved caption to local storage:", caption_input.value);
+  chrome.storage.local.set({"caption_template": caption_input.value}, function() {
+    console.debug("Saved caption template to local storage:", caption_input.value);
   });
   renderCaption();
 }
 
 function getCaption() {
-  const val = chrome.storage.local.get(["caption"], function (result) {
+  const val = chrome.storage.local.get(["caption_template"], function (result) {
     var caption_input = document.getElementById("caption-input");
-    caption_input.value = result.caption;
+    caption_input.value = result.caption_template;
   });
 }
 
