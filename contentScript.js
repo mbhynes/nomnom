@@ -1,9 +1,3 @@
-// Add callbacks to all images in the DOM at first load.
-var all_img = document.getElementsByTagName('img');
-for (const img of all_img) {
-  console.debug("Adding click listener to image: " + img.src)
-  img.addEventListener("contextmenu", (e) => clickCallback(img.src, e), false);
-}
 
 // Add callbacks to all DOM mutation events, such that we may find images
 // and add click callbacks once a mutation event is registered.
@@ -38,6 +32,15 @@ function mutationCallback(mutations) {
         // - Clicks on child elements overlaying the image are registerd on the image
         // - The extension click callback is registered on the image
         for (const img of all_img) {
+          // Check if the image has already been visited
+          if (img.dataset.__visited) {
+            console.log("Image already visited: " + img.src);
+            continue;
+          } else {
+            img.dataset.__visited = true;
+            img.dataset.__clicked = false;
+          }
+
           try {
             // iterate over all children of the img element and set the pointer events to none
             for (const child of img.children) {
@@ -84,12 +87,20 @@ function clickCallback(e) {
   if (e.shiftKey) {
     e.preventDefault();
     var img = e.target;
-    img.style.border = "5px solid red";
-    console.log("Right-clicked " + img.src);
-    chrome.runtime.sendMessage({"type": "image_click", "value": {url: img.src}}, function(response) {
-      console.log("Got result:", response);
-    });
-    return false;
+    console.log("img.dataset:", img.dataset);
+    if (img.dataset.__clicked == "true") {
+      // Register a click to revert click; the "unclick"
+      img.dataset.__clicked = false;
+      img.style.border = "5px solid blue";
+      console.log("again Right-clicked " + img.src);
+      chrome.runtime.sendMessage({"type": "image_click", "value": {"url": img.src, "count": -1}})
+    } else {
+      img.dataset.__clicked = true;
+      img.style.border = "5px solid red";
+      console.log("Right-clicked " + img.src);
+      chrome.runtime.sendMessage({"type": "image_click", "value": {"url": img.src, "count": 1}})
+    }
+
   } else {
     console.log("Right-clicked but shiftKey was up");
     return true;
