@@ -1,17 +1,127 @@
 <!DOCTYPE html>
-<html>
-<head><title>Nomnom Authentication</title></head>
-<body>
+<html style="width:400px;">
+  <head>
+    <title>Nomnom Authentication</title>
 
-<form action="" id="form-login">
-  <label for="fname">Username:</label><br>
-  <input type="text" id="username" name="username" value="John"><br>
-  <label for="lname">Password:</label><br>
-  <input type="password" id="password" name="password" value="12345"><br><br>
-  <input type="submit" value="Submit">
-</form> 
+    <link href="popup.css" rel="stylesheet">
+    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body style="width:100%;">
+    <div class="container scrollbar">
+      <nav class="navbar navbar-dark">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="popup.html">Image Labels</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="settings.html">Server Settings</a>
+          </li>
+       </ul>
+      </nav>
 
-<script src="popup.js"> </script>
 
-</body>
+
+      <div class="row">
+        <div class="mb-4">
+          <span class="input-group-text">Image Saver Settings:</span>
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="postAll">
+            <label class="form-check-label" for="flexSwitchCheckDefault">Save all (unclicked) images?</label>
+          </div>
+            <!-- <label>Minimum Size (width x height, pixels):</label> -->
+          <div class="input-group">
+            <span class="input-group-text">Min Size (pixels):</span>
+            <input type="text" class="form-control" placeholder="512" aria-label="Min Width">
+            <span class="input-group-text"> x </span>
+            <input type="text" class="form-control" placeholder="512" aria-label="Min Height">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="mb-4">
+          <span class="input-group-text">Caption:</span>
+          <textarea id="caption-input" class="form-control" id="exampleFormControlTextarea1" rows="4"></textarea>
+        </div>
+      </div>
+        
+      <div class="accordion" id="accordionExample">
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="headingOne">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+              Caption Template Variables
+            </button>
+          </h2>
+          <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+
+            <div class="accordion-body">
+
+              <div id="caption-variable-list" class="container">
+
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="form-floating">
+                      <input id="key1" type="text" class="form-control" id="floatingInputGrid" placeholder="{{ man }}" value="{{man}}">
+                      <label for="floatingInputGrid">Variable</label>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="form-floating">
+                    <div class="form-floating">
+                      <input id="val1" type="text" class="form-control" id="floatingInputGrid" placeholder="A large man wearing a hat" value="A large man wearing a hat">
+                      <label for="floatingInputGrid">Expands to:</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="form-floating">
+                      <input id="key2" type="text" class="form-control" id="floatingInputGrid" placeholder="{{ man }}" value="{{man}}">
+                      <label for="floatingInputGrid">Variable</label>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="form-floating">
+                    <div class="form-floating">
+                      <input id="val2" type="text" class="form-control" id="floatingInputGrid" placeholder="A large man wearing a hat" value="A large man wearing a hat">
+                      <label for="floatingInputGrid">Expands to:</label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="form-floating">
+                      <input id="key3" type="text" class="form-control" id="floatingInputGrid" placeholder="{{ man }}" value="{{man}}">
+                      <label for="floatingInputGrid">Variable</label>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="form-floating">
+                      <input id="val3" type="text" class="form-control" id="floatingInputGrid" placeholder="A large man wearing a hat" value="A large man wearing a hat">
+                      <label for="floatingInputGrid">Expands to:</label>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="mb-4">
+          <span class="input-group-text">Rendered Caption:</span>
+          <input id="caption-output" type="text" readonly class="form-control-plaintext" rows="4">
+        </div>
+      </div>
+ 
+    </div>
+  </body>
+
+  <script src="popup.js"></script>
+  <script src="bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
 </html>
