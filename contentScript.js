@@ -1,3 +1,4 @@
+var url_allowlist = ["<all_urls>"];
 
 // Add callbacks to all DOM mutation events, such that we may find images
 // and add click callbacks once a mutation event is registered.
@@ -9,6 +10,21 @@ observer.observe(document, {
   childList: true,
   subtree: true
 });
+
+function isUrlAllowListed(url) {
+  if (url_allowlist.length == 0) {
+    return true;
+  }
+  if (url_allowlist[0] == "<all_urls>") {
+    return true;
+  }
+  for (rule of url_allowlist) {
+    if ((rule == "<all_urls>") || (url.match(rule.replace('*', '.*')))) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Detect images added to the DOM and add click callbacks to them.
@@ -32,6 +48,13 @@ function mutationCallback(mutations) {
         // - Clicks on child elements overlaying the image are registerd on the image
         // - The extension click callback is registered on the image
         for (const img of all_img) {
+          // skip images that are not in the allowlist, but 
+          // don't mark them visited; if the allow list changes and
+          // a DOM mutation occurs, we want to re-visit the image
+          if (!isUrlAllowListed(img.src)) {
+            console.log(`Image ${img.src} not in the current allowlist: ${url_allowlist}"`)
+            continue;
+          }
           // Check if the image has already been visited
           if (img.dataset.__visited) {
             console.log("Image already visited: " + img.src);
@@ -106,3 +129,22 @@ function clickCallback(e) {
     return true;
   }
 };
+
+
+// Request the current url_allowlist
+chrome.runtime.sendMessage({"type": "get_url_allowlist"}, function(response) {
+  if (response.url_allowlist) {
+    url_allowlist = response.url_allowlist;
+  }
+});
+
+// Listen for updates to the url allowlist
+chrome.runtime.onMessage.addListener(
+  function(request, sender, sendResponse) {
+    if (request.type == "url_allowlist_update") {
+      if (request.value.url_allowlist) {
+        url_allowlist = request.value.url_allowlist;
+      }
+    }
+  }
+);

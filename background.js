@@ -5,6 +5,8 @@ const DATASTORE_KEYS = {
   "captions": "key",
 }
 
+// var url_allowlist = ["<all_urls>"];
+var url_allowlist = ["https://*.redd.it/*"];
 var should_collect_unclicked = false;
 var should_remote_post = false;
 var hostname = "";
@@ -36,12 +38,6 @@ request.onupgradeneeded = function(event) {
     obj.createIndex(DATASTORE_KEYS['images'], DATASTORE_KEYS['images'], {unique: true});
   }
 };
-
-// Add callbacks on all downloaded images during the session
-chrome.webRequest.onCompleted.addListener(contentHandler, {
-  urls: [ "<all_urls>" ],
-  types: ['image']
-}, []);
 
 function pathJoin(base, path) {
   return [base, path].join('/').replace(/\/+/g, '/');
@@ -206,11 +202,26 @@ function captionUpdateHandler(request, sender, sendResponse) {
 
 function settingsUpdateHandler(request, sender, sendResponse) {
   if (request.hostname !== undefined) {
-    console.log("Received hostname update: " + request.hostname + "");
+    console.log("Received hostname update: " + request.hostname);
     hostname = request.hostname;
     should_remote_post = (request.hostname.length > 0);
   }
 };
+
+function urlAllowUpdateHandler(request, sender, sendResponse) {
+  if (request.url_allowlist) {
+    url_allowlist = request.url_allowlist;
+    console.log("Received allowlist update: " + request.url_allowlist);
+  }
+};
+
+function updateImageDownloadListener() {
+  if (chrome.webRequest.onCompleted.hasListener(contentHandler)) {
+    chrome.webRequest.onCompleted.removeListener(contentHandler);
+  }
+  chrome.webRequest.onCompleted.addListener(contentHandler, {"urls": url_allowlist, "types": ['image']});
+  chrome.webRequest.handlerBehaviorChanged();
+}
 
 /**
  * Listener to handle click attribution events on the image records.
@@ -225,8 +236,11 @@ chrome.runtime.onMessage.addListener(
       settingsUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "caption_rendered") {
       captionUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "url_allowlist_update") {
+      urlAllowUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "get_url_allowlist") {
+      sendResponse({"url_allowlist": url_allowlist});
     }
-
   }
 );
 
@@ -242,4 +256,13 @@ chrome.storage.local.get(["caption"], function (result) {
     caption = result.caption;
     caption_key = cyrb53hash(caption);
   }
-})
+});
+chrome.storage.local.get(["url_allowlist"], function (result) {
+  if (result.url_allowlist) {
+    url_allowlist = result.url_allowlist;
+  }
+  // Default to all urls
+  updateImageDownloadListener();
+});
+
+console.log("rule:", chrome.webRequest);
