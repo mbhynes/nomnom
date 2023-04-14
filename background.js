@@ -6,7 +6,7 @@ const DATASTORE_KEYS = {
 }
 
 var url_rules = ["<all_urls>"];
-var should_collect_unclicked = false;
+var save_all_images = false;
 var should_remote_post = false;
 var hostname = "";
 var caption = "";
@@ -162,26 +162,31 @@ function storeImageEventPayload(url, payload) {
 };
 
 function contentHandler(details) {
-  const payload = {
-    url: details.url,
-    initiator: details.initiator,
-    requested_at: details.timeStamp,
-    view_events: [{
-      "timetamp": details.timeStamp,
-      "caption_key": caption_key,
-      "count": 1,
-    }],
-    click_events: [],
+  if (save_all_images) {
+    const payload = {
+      url: details.url,
+      initiator: details.initiator,
+      requested_at: details.timeStamp,
+      view_events: [{
+        "timetamp": details.timeStamp,
+        "caption_key": caption_key,
+        "count": 1,
+      }],
+      click_events: [],
+    }
+    storeImageEventPayload(details.url, payload);
+  } else {
+    console.debug(`Not saving image ${details.url} since save_all_images=${save_all_images}`);
   }
-  storeImageEventPayload(details.url, payload);
 }
 
 function imageClickHandler(request, sender, sendResponse) {
   const payload = {
     url: request.url,
+    initiator: request.initiator,
     view_events: [],
     click_events: [{
-      "timetamp": Date.now(),
+      "timetamp": request.timestamp,
       "caption_key": caption_key,
       "count": request.count,
     }],
@@ -214,6 +219,13 @@ function urlAllowUpdateHandler(request, sender, sendResponse) {
   }
 };
 
+function saveAllUpdateHandler(request, sender, sendResponse) {
+  if (request.save_all_images) {
+    save_all_images = request.save_all_images;
+    console.log("Received save_all update: " + save_all);
+  }
+};
+
 function updateImageDownloadListener() {
   if (chrome.webRequest.onCompleted.hasListener(contentHandler)) {
     chrome.webRequest.onCompleted.removeListener(contentHandler);
@@ -237,6 +249,8 @@ chrome.runtime.onMessage.addListener(
       captionUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "url_rules_update") {
       urlAllowUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "save_all_update") {
+      saveAllUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "get_url_rules") {
       sendResponse({"url_rules": url_rules});
     }
@@ -251,6 +265,12 @@ chrome.storage.local.get(["hostname"], function (result) {
   }
 })
 chrome.storage.local.get(["caption"], function (result) {
+  if (result.caption) {
+    caption = result.caption;
+    caption_key = cyrb53hash(caption);
+  }
+});
+chrome.storage.local.get(["save_all_images"], function (result) {
   if (result.caption) {
     caption = result.caption;
     caption_key = cyrb53hash(caption);

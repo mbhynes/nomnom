@@ -116,12 +116,18 @@ function clickCallback(e) {
       img.dataset.__clicked = false;
       img.style.border = "5px solid blue";
       console.log("again Right-clicked " + img.src);
-      chrome.runtime.sendMessage({"type": "image_click", "value": {"url": img.src, "count": -1}})
+      chrome.runtime.sendMessage({
+        "type": "image_click",
+        "value": {"url": img.src, "count": -1, "timestamp": Date.now(), "initiator": location.href}
+      })
     } else {
       img.dataset.__clicked = true;
       img.style.border = "5px solid red";
       console.log("Right-clicked " + img.src);
-      chrome.runtime.sendMessage({"type": "image_click", "value": {"url": img.src, "count": 1}})
+      chrome.runtime.sendMessage({
+        "type": "image_click",
+        "value": {"url": img.src, "count": 1, "timestamp": Date.now(), "initiator": location.href}
+      })
     }
 
   } else {

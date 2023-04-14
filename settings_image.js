@@ -1,16 +1,21 @@
-const save_all = document.getElementById('save-all-input');
-const url_rules = document.getElementById('url-rules-input');
+var save_all_images = document.getElementById('save-all-input');
+var url_rules = document.getElementById('url-rules-input');
 
 function setSaveAll() {
-  chrome.storage.local.set({"save_all_images": save_all.value}, function(result) {
-    console.debug("Set save_all to state:", save_all.value);
+  console.log(save_all_images);
+  const value = save_all_images.checked;
+  chrome.storage.local.set({"save_all_images": value}, function(result) {
+    console.debug("Set save_all to state:", value);
   });
-  // TODO: send a message
+   chrome.runtime.sendMessage({
+    'type': 'save_all_images', 'value': {'save_all_images': value}
+  });
 }
 
 function getSaveAll() {
-  const val = chrome.storage.local.get(["save_all_images"], function (result) {
-    save_all.value = result.save_all_images;
+  chrome.storage.local.get(["save_all_images"], function (result) {
+    console.log("get save_all_images:", result.save_all_images)
+    save_all_images.checked = result.save_all_images;
   });
 }
 
@@ -28,7 +33,6 @@ function setUrlRules() {
   chrome.storage.local.set({"url_rules": rules}, function(result) {
     console.debug("Set url rules to:", rules);
   });
-  // TODO: send a message for the new rules
   chrome.runtime.sendMessage({
     'type': 'url_rules_update', 'value': {'url_rules': rules}
   });
@@ -40,7 +44,7 @@ function getUrlRules() {
   });
 }
 
-save_all.addEventListener('change', setSaveAll);
+save_all_images.addEventListener('change', setSaveAll);
 url_rules.addEventListener('change', setUrlRules);
 
 getSaveAll();
