@@ -3,45 +3,30 @@
   <head>
     <title>Nomnom Authentication</title>
 
-    <link href="popup.css" rel="stylesheet">
+    <link href="settings.css" rel="stylesheet">
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
   </head>
+
   <body style="width:100%;">
     <div class="container scrollbar">
       <nav class="navbar navbar-dark">
         <ul class="nav nav-tabs">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="popup.html">Image Labels</a>
+            <a class="nav-link active" aria-current="page" href="settings_caption.html">Image Captions</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="settings.html">Server Settings</a>
+            <a class="nav-link" href="settings_image.html">Image Settings</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="settings_server.html">Server Settings</a>
           </li>
        </ul>
       </nav>
 
-
-
-      <div class="row">
-        <div class="mb-4">
-          <span class="input-group-text">Image Saver Settings:</span>
-          <div class="form-check form-switch">
-            <input class="form-check-input" type="checkbox" id="postAll">
-            <label class="form-check-label" for="flexSwitchCheckDefault">Save all (unclicked) images?</label>
-          </div>
-            <!-- <label>Minimum Size (width x height, pixels):</label> -->
-          <div class="input-group">
-            <span class="input-group-text">Min Size (pixels):</span>
-            <input type="text" class="form-control" placeholder="512" aria-label="Min Width">
-            <span class="input-group-text"> x </span>
-            <input type="text" class="form-control" placeholder="512" aria-label="Min Height">
-          </div>
-        </div>
-      </div>
-
       <div class="row">
         <div class="mb-4">
           <span class="input-group-text">Caption:</span>
-          <textarea id="caption-input" class="form-control" id="exampleFormControlTextarea1" rows="4"></textarea>
+          <textarea id="caption-input" class="form-control" rows="4"></textarea>
         </div>
       </div>
         
@@ -121,7 +106,7 @@
     </div>
   </body>
 
-  <script src="popup.js"></script>
+  <script src="settings_caption.js"></script>
   <script src="bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
 </html>

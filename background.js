@@ -5,8 +5,7 @@ const DATASTORE_KEYS = {
   "captions": "key",
 }
 
-// var url_allowlist = ["<all_urls>"];
-var url_allowlist = ["https://*.redd.it/*"];
+var url_rules = ["<all_urls>"];
 var should_collect_unclicked = false;
 var should_remote_post = false;
 var hostname = "";
@@ -209,9 +208,9 @@ function settingsUpdateHandler(request, sender, sendResponse) {
 };
 
 function urlAllowUpdateHandler(request, sender, sendResponse) {
-  if (request.url_allowlist) {
-    url_allowlist = request.url_allowlist;
-    console.log("Received allowlist update: " + request.url_allowlist);
+  if (request.url_rules) {
+    url_rules = request.url_rules;
+    console.log("Received rules update: " + request.url_rules);
   }
 };
 
@@ -219,7 +218,7 @@ function updateImageDownloadListener() {
   if (chrome.webRequest.onCompleted.hasListener(contentHandler)) {
     chrome.webRequest.onCompleted.removeListener(contentHandler);
   }
-  chrome.webRequest.onCompleted.addListener(contentHandler, {"urls": url_allowlist, "types": ['image']});
+  chrome.webRequest.onCompleted.addListener(contentHandler, {"urls": url_rules, "types": ['image']});
   chrome.webRequest.handlerBehaviorChanged();
 }
 
@@ -236,10 +235,10 @@ chrome.runtime.onMessage.addListener(
       settingsUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "caption_rendered") {
       captionUpdateHandler(request.value, sender, sendResponse);
-    } else if (request.type == "url_allowlist_update") {
+    } else if (request.type == "url_rules_update") {
       urlAllowUpdateHandler(request.value, sender, sendResponse);
-    } else if (request.type == "get_url_allowlist") {
-      sendResponse({"url_allowlist": url_allowlist});
+    } else if (request.type == "get_url_rules") {
+      sendResponse({"url_rules": url_rules});
     }
   }
 );
@@ -257,9 +256,9 @@ chrome.storage.local.get(["caption"], function (result) {
     caption_key = cyrb53hash(caption);
   }
 });
-chrome.storage.local.get(["url_allowlist"], function (result) {
-  if (result.url_allowlist) {
-    url_allowlist = result.url_allowlist;
+chrome.storage.local.get(["url_rules"], function (result) {
+  if (result.url_rules) {
+    url_rules = result.url_rules;
   }
   // Default to all urls
   updateImageDownloadListener();

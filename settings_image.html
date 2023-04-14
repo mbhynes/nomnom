@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html style="width:400px;">
+  <head>
+    <title>Nomnom Authentication</title>
+
+    <link href="settings.css" rel="stylesheet">
+    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+
+  <body style="width:100%;">
+    <div class="container scrollbar">
+      <nav class="navbar navbar-dark">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link" aria-current="page" href="settings_caption.html">Image Captions</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="settings_image.html">Image Settings</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="settings_server.html">Server Settings</a>
+          </li>
+       </ul>
+      </nav>
+
+      <div class="row">
+        <div class="mb-4">
+          <span class="input-group-text">Save Unclicked:</span>
+          <div class="col mx-2">
+            <p>
+            You can save <em>all</em> images or only clicked images.
+            Choose <em>save all</em> for classification problems with positive and negative examples.
+            </p>
+
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="save-all-input">
+              <label class="form-check-label" for="flexSwitchCheckDefault">Save all (unclicked) images?</label>
+            </div>
+          </div>
+
+            <!-- <label>Minimum Size (width x height, pixels):</label> -->
+          <div class="input-group my-2">
+            <span class="input-group-text">Min Size (pixels):</span>
+            <input type="text" class="form-control" placeholder="512" aria-label="Min Width">
+            <span class="input-group-text"> x </span>
+            <input type="text" class="form-control" placeholder="512" aria-label="Min Height">
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="mb-4">
+          <span class="input-group-text">Image URL Allow Rules:</span>
+
+          <div class="col mx-2">
+            <p>
+            Specify 
+            <a href="https://developer.chrome.com/docs/extensions/mv2/match_patterns/">URL match patterns</a> 
+            to filter images by source URL.
+            Multiple rules may be entered, separated by a comma.
+            </p>
+          </div>
+          <textarea id="url-rules-input" class="form-control" rows="4">
+            <all_urls>
+          </textarea>
+        </div>
+      </div>
+ 
+    </div>
+  </body>
+
+  <script src="settings_image.js"></script>
+  <script src="bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+</html>
