@@ -5,7 +5,8 @@ const DATASTORE_KEYS = {
   "captions": "key",
 }
 
-var should_collect_unclicked = false;
+var url_rules = ["<all_urls>"];
+var save_all_images = false;
 var should_remote_post = false;
 var hostname = "";
 var caption = "";
@@ -36,12 +37,6 @@ request.onupgradeneeded = function(event) {
     obj.createIndex(DATASTORE_KEYS['images'], DATASTORE_KEYS['images'], {unique: true});
   }
 };
-
-// Add callbacks on all downloaded images during the session
-chrome.webRequest.onCompleted.addListener(contentHandler, {
-  urls: [ "<all_urls>" ],
-  types: ['image']
-}, []);
 
 function pathJoin(base, path) {
   return [base, path].join('/').replace(/\/+/g, '/');
@@ -130,27 +125,29 @@ function storeImageEventPayload(url, payload) {
     xhr.addEventListener("load", function () {
       if (xhr.status === 200) {
         blob = xhr.response;
-        console.log("Posting payload:", payload);
         chrome.storage.local.get(["token"], function (result) {
           var log_xhr = new XMLHttpRequest();
           var payload_form = new FormData();
-          for (const key in payload) {
-            payload_form.set(key, payload[key]);
-          }
+          // for (const key in payload) {
+          //   payload_form.set(key, payload[key]);
+          // }
+          // payload_form.delete("view_events");
+          // payload_form.delete("click_events");
+          console.log("Posting filename:", `file.${blob.type.split("/").slice(-1)}`)
+          payload_form.append('url', url);
           payload_form.append(
             'img',
-            xhr.response,
-            // new Blob([xhr.response], {"type": imageTypeFromUrl(details.url)}),
+            blob,
+            // new Blob([xhr.response], {"type": imageTypeFromUrl(url)}),
             // details.url
-            "file." + imageTypeFromUrl(url)
+            `file.${blob.type.split("/").slice(-1)}` //imageTypeFromUrl(url)
           );
 
+          console.log("Posting payload:", payload_form);
           endpoint = pathJoin(hostname, IMAGE_POST_ENDPOINT)
           log_xhr.open("POST", endpoint, true);
           log_xhr.responseType = 'json';
           log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
-          console.debug("Posting payload with token:", result.token);
-          console.debug("Blob:", blob);
           log_xhr.addEventListener("load", function () {
             if (log_xhr.status === 200) {
               console.debug("Successful POST to: ", endpoint, log_xhr.status, log_xhr.response);
@@ -167,26 +164,31 @@ function storeImageEventPayload(url, payload) {
 };
 
 function contentHandler(details) {
-  const payload = {
-    url: details.url,
-    initiator: details.initiator,
-    requested_at: details.timeStamp,
-    view_events: [{
-      "timetamp": details.timeStamp,
-      "caption_key": caption_key,
-      "count": 1,
-    }],
-    click_events: [],
+  if (save_all_images) {
+    const payload = {
+      url: details.url,
+      initiator: details.initiator,
+      requested_at: details.timeStamp,
+      view_events: [{
+        "timetamp": details.timeStamp,
+        "caption_key": caption_key,
+        "count": 1,
+      }],
+      click_events: [],
+    }
+    storeImageEventPayload(details.url, payload);
+  } else {
+    console.debug(`Not saving image ${details.url} since save_all_images=${save_all_images}`);
   }
-  storeImageEventPayload(details.url, payload);
 }
 
 function imageClickHandler(request, sender, sendResponse) {
   const payload = {
     url: request.url,
+    initiator: request.initiator,
     view_events: [],
     click_events: [{
-      "timetamp": Date.now(),
+      "timetamp": request.timestamp,
       "caption_key": caption_key,
       "count": request.count,
     }],
@@ -206,11 +208,33 @@ function captionUpdateHandler(request, sender, sendResponse) {
 
 function settingsUpdateHandler(request, sender, sendResponse) {
   if (request.hostname !== undefined) {
-    console.log("Received hostname update: " + request.hostname + "");
+    console.log("Received hostname update: " + request.hostname);
     hostname = request.hostname;
     should_remote_post = (request.hostname.length > 0);
   }
 };
+
+function urlAllowUpdateHandler(request, sender, sendResponse) {
+  if (request.url_rules) {
+    url_rules = request.url_rules;
+    console.log("Received rules update: " + request.url_rules);
+  }
+};
+
+function saveAllUpdateHandler(request, sender, sendResponse) {
+  if (request.save_all_images) {
+    save_all_images = request.save_all_images;
+    console.log("Received save_all update: " + save_all);
+  }
+};
+
+function updateImageDownloadListener() {
+  if (chrome.webRequest.onCompleted.hasListener(contentHandler)) {
+    chrome.webRequest.onCompleted.removeListener(contentHandler);
+  }
+  chrome.webRequest.onCompleted.addListener(contentHandler, {"urls": url_rules, "types": ['image']});
+  chrome.webRequest.handlerBehaviorChanged();
+}
 
 /**
  * Listener to handle click attribution events on the image records.
@@ -225,8 +249,13 @@ chrome.runtime.onMessage.addListener(
       settingsUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "caption_rendered") {
       captionUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "url_rules_update") {
+      urlAllowUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "save_all_update") {
+      saveAllUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "get_url_rules") {
+      sendResponse({"url_rules": url_rules});
     }
-
   }
 );
 
@@ -242,4 +271,19 @@ chrome.storage.local.get(["caption"], function (result) {
     caption = result.caption;
     caption_key = cyrb53hash(caption);
   }
-})
+});
+chrome.storage.local.get(["save_all_images"], function (result) {
+  if (result.caption) {
+    caption = result.caption;
+    caption_key = cyrb53hash(caption);
+  }
+});
+chrome.storage.local.get(["url_rules"], function (result) {
+  if (result.url_rules) {
+    url_rules = result.url_rules;
+  }
+  // Default to all urls
+  updateImageDownloadListener();
+});
+
+console.log("rule:", chrome.webRequest);

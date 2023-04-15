@@ -6,7 +6,6 @@ const k3 = document.getElementById("key3");
 const v1 = document.getElementById("val1");
 const v2 = document.getElementById("val2");
 const v3 = document.getElementById("val3");
-const postAll = document.getElementById("postAll");
 
 
 function renderCaption() {
@@ -71,9 +70,7 @@ k3.addEventListener('change', setTemplateVariables);
 v1.addEventListener('change', setTemplateVariables);
 v2.addEventListener('change', setTemplateVariables);
 v3.addEventListener('change', setTemplateVariables);
-// postAll.addEventListener('change', setPostAll);
 
 getCaption();
 getTemplateVariables();
 renderCaption();
-// getPostAll();
