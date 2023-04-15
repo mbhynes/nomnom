@@ -125,27 +125,29 @@ function storeImageEventPayload(url, payload) {
     xhr.addEventListener("load", function () {
       if (xhr.status === 200) {
         blob = xhr.response;
-        console.log("Posting payload:", payload);
         chrome.storage.local.get(["token"], function (result) {
           var log_xhr = new XMLHttpRequest();
           var payload_form = new FormData();
-          for (const key in payload) {
-            payload_form.set(key, payload[key]);
-          }
+          // for (const key in payload) {
+          //   payload_form.set(key, payload[key]);
+          // }
+          // payload_form.delete("view_events");
+          // payload_form.delete("click_events");
+          console.log("Posting filename:", `file.${blob.type.split("/").slice(-1)}`)
+          payload_form.append('url', url);
           payload_form.append(
             'img',
-            xhr.response,
-            // new Blob([xhr.response], {"type": imageTypeFromUrl(details.url)}),
+            blob,
+            // new Blob([xhr.response], {"type": imageTypeFromUrl(url)}),
             // details.url
-            "file." + imageTypeFromUrl(url)
+            `file.${blob.type.split("/").slice(-1)}` //imageTypeFromUrl(url)
           );
 
+          console.log("Posting payload:", payload_form);
           endpoint = pathJoin(hostname, IMAGE_POST_ENDPOINT)
           log_xhr.open("POST", endpoint, true);
           log_xhr.responseType = 'json';
           log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
-          console.debug("Posting payload with token:", result.token);
-          console.debug("Blob:", blob);
           log_xhr.addEventListener("load", function () {
             if (log_xhr.status === 200) {
               console.debug("Successful POST to: ", endpoint, log_xhr.status, log_xhr.response);
