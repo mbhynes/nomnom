@@ -70,14 +70,12 @@ function upsert(database, payload, onSuccess, onError, mergeFn) {
       if (onSuccess !== undefined)
         request.onsuccess = onSuccess;
     } else {  
-      console.log("get result:", result, event)
       var record;
       if (mergeFn === undefined) {
         record = {...result, ...payload};
       } else {
         record = mergeFn(result, payload);
       }
-      console.debug("Updating record to be:", record);
       var updateRequest = obj.put(record);
       if (onError !== undefined)
         updateRequest.onerror = onError;
@@ -99,9 +97,9 @@ function upsert(database, payload, onSuccess, onError, mergeFn) {
  * }
  */
 function storeImageEventPayload(url, payload) {
-  // Create a cross-header request to GET the image
-  // This will typically not actually result in a request,
-  // however since the image will be retrieved from cache.
+  // Create a cross-header request to GET the image specified by url
+  // This should not actually result in a request over the network,
+  // since the image should be retrieved from the browser cache.
   const key = keyFromUrl(url);
   var xhr = new XMLHttpRequest(),
       blob;
@@ -115,8 +113,7 @@ function storeImageEventPayload(url, payload) {
         ...payload,
         ...{"image": blob}
       };
-      console.log("Attempting to save record:", record);
-      upsert('images', record, console.debug, console.debug, mergeImagePayloads);
+      upsert('images', record, () => {}, (e) => console.error("Failed to upsert image:", e), mergeImagePayloads);
     } else {
       console.error("Failed to retrieve image:", url);
     }
@@ -132,25 +129,20 @@ function storeImageEventPayload(url, payload) {
           for (const key in payload) {
             payload_form.set(key, payload[key]);
           }
-          console.log("Posting filename:", `file.${blob.type.split("/").slice(-1)}`)
           payload_form.append(
             'img',
             blob,
-            // new Blob([xhr.response], {"type": imageTypeFromUrl(url)}),
-            // details.url
-            `file.${blob.type.split("/").slice(-1)}` //imageTypeFromUrl(url)
+            `file.${blob.type.split("/").slice(-1)}`
           );
-
-          console.log("Posting payload:", payload_form);
           endpoint = pathJoin(hostname, IMAGE_POST_ENDPOINT)
           log_xhr.open("POST", endpoint, true);
           log_xhr.responseType = 'json';
           log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
           log_xhr.addEventListener("load", function () {
             if (log_xhr.status === 200) {
-              console.debug("Successful POST to: ", endpoint, log_xhr.status, log_xhr.response);
+              console.debug(`Successful POST for ${url} to: ${endpoint}`, log_xhr.response);
             } else {
-              console.error("Encountered error on POST to ", endpoint, log_xhr.status, log_xhr.response);
+              console.error(`Encountered error on POST for ${url} to ${endpoint}`, payload_form, log_xhr.response);
             }
           })
           log_xhr.send(payload_form);
@@ -161,7 +153,7 @@ function storeImageEventPayload(url, payload) {
   }
 };
 
-function contentHandler(details) {
+function downloadHandler(details) {
   if (save_all_images) {
     const payload = {
       url: details.url,
@@ -196,41 +188,41 @@ function imageClickHandler(request, sender, sendResponse) {
 
 function captionUpdateHandler(request, sender, sendResponse) {
   if (request.caption !== undefined) {
-    console.log("Received caption update: " + request.caption + "");
     caption = request.caption;
     caption_key = cyrb53hash(caption);
     console.log(caption_key, caption);
+    console.log(`Received caption update: ${caption} (key: ${caption_key})`);
     upsert("captions", {'key': caption_key, 'caption': caption, 'updated_at': Date.now()})
   }
 }
 
 function settingsUpdateHandler(request, sender, sendResponse) {
   if (request.hostname !== undefined) {
-    console.log("Received hostname update: " + request.hostname);
     hostname = request.hostname;
     should_remote_post = (request.hostname.length > 0);
+    console.log("Received hostname update: " + hostname);
   }
 };
 
 function urlAllowUpdateHandler(request, sender, sendResponse) {
-  if (request.url_rules) {
+  if (request.url_rules !== undefined) {
     url_rules = request.url_rules;
-    console.log("Received rules update: " + request.url_rules);
+    console.log("Received rules update: " + url_rules);
   }
 };
 
 function saveAllUpdateHandler(request, sender, sendResponse) {
-  if (request.save_all_images) {
+  if (request.save_all_images !== undefined) {
     save_all_images = request.save_all_images;
-    console.log("Received save_all update: " + save_all);
+    console.log("Received save_all update: " + save_all_images);
   }
 };
 
 function updateImageDownloadListener() {
-  if (chrome.webRequest.onCompleted.hasListener(contentHandler)) {
-    chrome.webRequest.onCompleted.removeListener(contentHandler);
+  if (chrome.webRequest.onCompleted.hasListener(downloadHandler)) {
+    chrome.webRequest.onCompleted.removeListener(downloadHandler);
   }
-  chrome.webRequest.onCompleted.addListener(contentHandler, {"urls": url_rules, "types": ['image']});
+  chrome.webRequest.onCompleted.addListener(downloadHandler, {"urls": url_rules, "types": ['image']});
   chrome.webRequest.handlerBehaviorChanged();
 }
 
@@ -258,7 +250,7 @@ async function exportRequestHandler(request) {
  */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log(`Received message: ${request.type}`);
+    console.log(`Received message: ${request.type}`, request.value);
     if (request.type == "image_click") {
       imageClickHandler(request.value, sender, sendResponse);
     } else if (request.type == "settings_update") {
@@ -267,7 +259,7 @@ chrome.runtime.onMessage.addListener(
       captionUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "url_rules_update") {
       urlAllowUpdateHandler(request.value, sender, sendResponse);
-    } else if (request.type == "save_all_update") {
+    } else if (request.type == "save_all_images") {
       saveAllUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "get_url_rules") {
       sendResponse({"url_rules": url_rules});
@@ -281,30 +273,26 @@ chrome.runtime.onMessage.addListener(
 
 // Retrieve settings values from storage on start
 chrome.storage.local.get(["hostname"], function (result) {
-  if (result.hostname) {
+  if (result.hostname !== undefined) {
     hostname = result.hostname;
     should_remote_post = (result.hostname.length > 0);
   }
 })
-
 chrome.storage.local.get(["caption"], function (result) {
-  if (result.caption) {
+  if (result.caption !== undefined) {
     caption = result.caption;
     caption_key = cyrb53hash(caption);
   }
 });
 chrome.storage.local.get(["save_all_images"], function (result) {
-  if (result.caption) {
-    caption = result.caption;
-    caption_key = cyrb53hash(caption);
+  if (result.save_all_images !== undefined) {
+    save_all_images = result.save_all_images;
   }
 });
 chrome.storage.local.get(["url_rules"], function (result) {
-  if (result.url_rules) {
+  if (result.url_rules !== undefined) {
     url_rules = result.url_rules;
   }
   // Default to all urls
   updateImageDownloadListener();
 });
-
-console.log("rule:", chrome.webRequest);

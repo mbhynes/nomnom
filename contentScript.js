@@ -1,3 +1,20 @@
+/**
+ * Nomnom - Content Script
+ *
+ * This script is injected into every page loaded by the browser, and is responsible
+ * for the following:.
+ * - Detecting when images are added to the DOM through a MutationObserver
+ * - Modifying the CSS of images to display the clicked/un-clicked status
+ * - Attaching on-click callbacks to each image, to send any click events
+ *   to the background script that stores the click data.
+ */
+
+const clickedImageBorder = "5px solid red";
+const unlickedImageBorder = "5px solid blue";
+
+// Set the default rules to a blanket "*" allow list
+// The url rules must be a list of Match Pattern strings as per:
+//  https://developer.chrome.com/docs/extensions/mv2/match_patterns
 var url_rules = ["<all_urls>"];
 
 // Add callbacks to all DOM mutation events, such that we may find images
@@ -11,6 +28,9 @@ observer.observe(document, {
   subtree: true
 });
 
+/**
+ * Return true if the URL is valid according to the current url_rules.
+ */
 function isUrlAllowListed(url) {
   if (url_rules.length == 0) {
     return true;
@@ -26,6 +46,9 @@ function isUrlAllowListed(url) {
   return false;
 }
 
+/**
+ * Process a single image element in the DOM, adding click callbacks and styling.
+ */
 function processImage(img) {
   // skip images that are not in the rules allowlist, but 
   // don't mark them visited; if the allow list changes and
@@ -64,12 +87,11 @@ function processImage(img) {
     }
     // Set the border of the img element to blue
     img.style.padding = "none";
-    img.style.border = "5px solid blue";
+    img.style.border = unlickedImageBorder;
+
     // Set the pointer events of the image to none so that the click is registered on the parent element
     img.style.pointerEvents = "auto";
 
-    // Set the image to turn blue on hover
-    // img.style.hover = "5px solid blue";
     img.addEventListener("click", (e) => clickCallback(e), false);
   } catch (err) {
     console.error("Error adding callback to img: " + img.src);
@@ -108,53 +130,34 @@ function mutationCallback(mutations) {
 };
 
 /**
- * Handle a special right-click event on the image.
+ * Handle a special click event on the image;
+ * - If the shift key is down, prevent the default URL follow action
+ * - Instead, send a message to the background script for the image's source URL,
+ *   registering the a click event for that image URL for the current caption.
  */
 function clickCallback(e) {
   if (e.shiftKey) {
     e.preventDefault();
     var img = e.target;
-    console.log("img.dataset:", img.dataset);
+    console.debug(`Processing a shiftdown+click for ${img.src}`);
     if (img.dataset.__clicked == "true") {
-      // Register a click to revert click; the "unclick"
+      // Register a reverted click; i.e. an "unclick"
       img.dataset.__clicked = false;
-      img.style.border = "5px solid blue";
-      console.log("again Right-clicked " + img.src);
+      img.style.border = unlickedImageBorder
       chrome.runtime.sendMessage({
         "type": "image_click",
         "value": {"url": img.src, "count": -1, "timestamp": Date.now(), "initiator": location.href}
       })
     } else {
       img.dataset.__clicked = true;
-      img.style.border = "5px solid red";
-      console.log("Right-clicked " + img.src);
+      img.style.border = clickedImageBorder;
       chrome.runtime.sendMessage({
         "type": "image_click",
         "value": {"url": img.src, "count": 1, "timestamp": Date.now(), "initiator": location.href}
       })
     }
-
-  } else {
-    console.log("Right-clicked but shiftKey was up");
-    return true;
   }
 };
-
-
-// Request the current url_rules
-chrome.runtime.sendMessage({"type": "get_url_rules"}, function(response) {
-  if (response.url_rules) {
-    url_rules = response.url_rules;
-  }
-});
-
-async function getDirectoryHandle() {
-  const opts = {
-    type: 'open-directory'
-  };
-  console.log("opening picker")
-  return await window.showDirectoryPicker(opts);
-}
 
 // Listen for updates to the url rules
 chrome.runtime.onMessage.addListener(
@@ -164,12 +167,16 @@ chrome.runtime.onMessage.addListener(
       if (request.value.url_rules) {
         url_rules = request.value.url_rules;
       }
-    } else if (request.type == "action:export_db") {
-      console.log("Received message", request);
-      getDirectoryHandle();
-    };
+    }
   }
 );
+
+// Request the current url_rules on page load
+chrome.runtime.sendMessage({"type": "get_url_rules"}, function(response) {
+  if (response.url_rules) {
+    url_rules = response.url_rules;
+  }
+});
 
 // Process the initial set of images in the DOM
 var all_img = document.getElementsByTagName('img');
