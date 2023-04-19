@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html style="width:400px;">
   <head>
-    <title>Nomnom Authentication</title>
+    <title>Export Caption Database</title>
 
     <link href="settings.css" rel="stylesheet">
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -32,9 +32,12 @@
             <span class="input-group-text">Export Data</span>
           </div>
             <p>
-            Choose a directory to export current image database to.
+            Local database exports are currently unavilable due to an <a href="https://bugs.chromium.org/p/chromium/issues/detail?id=1368818">issue</a> with the Chromium browser.
             </p>
-          <button type="button" class="btn btn-primary" id="export-button" style="min-width:5em">Export</button>
+            <p>
+            Please configure a remote or local server to post image labels to.
+            </p>
+          <button type="button" class="btn btn-primary disabled" id="export-button" style="min-width:5em">Export</button>
         </div>
       </div>
         

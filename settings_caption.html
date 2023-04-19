@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html style="width:400px;">
   <head>
-    <title>Nomnom Authentication</title>
+    <title>Image Captions</title>
 
     <link href="settings.css" rel="stylesheet">
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -55,7 +55,6 @@
                   </div>
                   <div class="col-6">
                     <div class="form-floating">
-                    <div class="form-floating">
                       <input id="val1" type="text" class="form-control" id="floatingInputGrid" placeholder="A large man wearing a hat" value="A large man wearing a hat">
                       <label for="floatingInputGrid">Expands to:</label>
                     </div>
@@ -70,7 +69,6 @@
                     </div>
                   </div>
                   <div class="col-6">
-                    <div class="form-floating">
                     <div class="form-floating">
                       <input id="val2" type="text" class="form-control" id="floatingInputGrid" placeholder="A large man wearing a hat" value="A large man wearing a hat">
                       <label for="floatingInputGrid">Expands to:</label>
@@ -99,10 +97,16 @@
         </div>
       </div>
 
-      <div class="row">
+      <div class="row my-1">
         <div class="mb-4">
           <span class="input-group-text">Rendered Caption:</span>
-          <input id="caption-output" type="text" readonly class="form-control-plaintext" rows="4">
+          <input id="caption-output" type="text" readonly class="form-control-plaintext mx-2" rows="4">
+        </div>
+      </div>
+
+      <div class="row my-1">
+        <div class="col">
+        <button type="button" class="btn btn-primary" id="export-button" style="min-width:5em">Save</button>
         </div>
       </div>
  

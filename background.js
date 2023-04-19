@@ -1,3 +1,4 @@
+// TODO: make this configurable
 const IMAGE_POST_ENDPOINT = "image/";
 
 const DATASTORE_KEYS = {
@@ -128,13 +129,10 @@ function storeImageEventPayload(url, payload) {
         chrome.storage.local.get(["token"], function (result) {
           var log_xhr = new XMLHttpRequest();
           var payload_form = new FormData();
-          // for (const key in payload) {
-          //   payload_form.set(key, payload[key]);
-          // }
-          // payload_form.delete("view_events");
-          // payload_form.delete("click_events");
+          for (const key in payload) {
+            payload_form.set(key, payload[key]);
+          }
           console.log("Posting filename:", `file.${blob.type.split("/").slice(-1)}`)
-          payload_form.append('url', url);
           payload_form.append(
             'img',
             blob,
@@ -236,6 +234,23 @@ function updateImageDownloadListener() {
   chrome.webRequest.handlerBehaviorChanged();
 }
 
+// TODO: implement this after the upstream error is fixed. Currently it 
+// is not possible to use window.showDirectoryPicker() in either an extension
+// or a background script (service worker in manifest v3).
+//  - https://bugs.chromium.org/p/chromium/issues/detail?id=1368818
+//  - https://github.com/WICG/file-system-access/issues/289 
+//  - https://bugs.chromium.org/p/chromium/issues/detail?id=1359786
+async function exportRequestHandler(request) {
+  const parentDirectoryHandle = await window.showDirectoryPicker();
+  const directoryHandle = await parentDirectoryHandle.getDirectoryHandle(`nomnom_image_export_${request.extractAt}`, {
+    create: true,
+  });
+  // TODO: 
+  // - open a cursor to iterator over the indexed DB
+  // - retreive each record last updated before extractAt
+  // - add some watermark metadata in the db for incremental CDC extract
+}
+
 /**
  * Listener to handle click attribution events on the image records.
  * This function will updated the indexedDB records to record whether
@@ -243,6 +258,7 @@ function updateImageDownloadListener() {
  */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
+    console.log(`Received message: ${request.type}`);
     if (request.type == "image_click") {
       imageClickHandler(request.value, sender, sendResponse);
     } else if (request.type == "settings_update") {
@@ -255,7 +271,11 @@ chrome.runtime.onMessage.addListener(
       saveAllUpdateHandler(request.value, sender, sendResponse);
     } else if (request.type == "get_url_rules") {
       sendResponse({"url_rules": url_rules});
-    }
+    } else if (request.type == "action:export_db") {
+      // exportRequestHandler(request.value, sender, sendResponse).then(console.log);
+      console.error("Cannot export image database due to https://bugs.chromium.org/p/chromium/issues/detail?id=1368818")
+    };
+
   }
 );
 
@@ -266,6 +286,7 @@ chrome.storage.local.get(["hostname"], function (result) {
     should_remote_post = (result.hostname.length > 0);
   }
 })
+
 chrome.storage.local.get(["caption"], function (result) {
   if (result.caption) {
     caption = result.caption;

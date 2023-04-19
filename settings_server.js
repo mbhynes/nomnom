@@ -1,10 +1,11 @@
+// TODO: make these configurable for the user
 const TOKEN_POST_ENDPOINT = "auth-token/"
 const TOKEN_CHECK_ENDPOINT = "auth-check/"
 
 const hostname_input = document.getElementById("hostname");
 const form = document.getElementById('form-login');
-const form_spinner = document.getElementById('auth-spinner');
 const form_message = document.getElementById('auth-message');
+const form_submit = document.getElementById('auth-submit');
 
 function pathJoin(base, path) {
   return [base, path].join('/').replace(/\/+/g, '/');
@@ -17,7 +18,6 @@ function setLastHostnameInLoginForm(state) {
     }
   })
 }
-
 
 function setBadgeState(state) {
   if (state === "loading") {
@@ -47,13 +47,23 @@ function isTokenValid(token) {
         console.debug("Provided token was validated. Received response from server:");
         console.debug(xhr.response);
         setBadgeState("success");
-        result = true;
+        form_message.innerHTML = `
+          <div class="alert alert-success" role="alert">
+            Local previously cached token was validated. You are logged in.
+          </div>
+        `
       } else {
         console.error("Provided token was invalid. Received response from server:");
         setBadgeState("error");
         console.error(xhr.response);
+        form_message.innerHTML = `
+          <div class="alert alert-danger" role="alert">
+            Could not validate token: ${xhr.response}
+          </div>
+        `
       }
     });
+    setBadgeState("loading");
     xhr.send();
     return (xhr.status === 200);
   })
@@ -74,6 +84,8 @@ function checkLocalToken() {
 
 function loginAndFetchToken(e) {
   e.preventDefault();
+  form_submit.classList.toggle("disabled");
+  form_submit.value = `Loading...`;
   const hostname = e.target.elements.hostname.value;
   const payload = {
     "username": e.target.elements.username.value,
@@ -91,32 +103,50 @@ function loginAndFetchToken(e) {
   xhr.open("POST", token_post_endpoint, true);
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.responseType = "json"
-  xhr.addEventListener("load", function () {
+  xhr.timeout = 3000; 
+  xhr.onload = () => {
     if (xhr.status === 200) {
       chrome.storage.local.set({"token": xhr.response["token"]}, function() {
         console.debug("Saved token to local storage:", xhr.response["token"]);
       });
       setBadgeState("success");
+      form_message.innerHTML = `
+        <div class="alert alert-success" role="alert">
+          Login successful. Cached auth token to local storage.
+        </div>
+      `
     } else {
       console.error(xhr.response);
       setBadgeState("error");
+      form_message.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+          Login failed. Please verify your credentials.
+        </div>
+      `
     }
-  });
-  setBadgeState("loading");
-  xhr.send(JSON.stringify(payload))
-}
-
-function setBadgeState(state) {
-  if (state === "loading") {
-    chrome.browserAction.setBadgeText({"text": "..."});
-    chrome.browserAction.setBadgeBackgroundColor({"color": "#666666"});
-  } else if (state === "success") {
-    chrome.browserAction.setBadgeText({"text": "ok"});
-    chrome.browserAction.setBadgeBackgroundColor({"color": "#00AA00"});
-  } else {
-    chrome.browserAction.setBadgeText({"text": "x"});
-    chrome.browserAction.setBadgeBackgroundColor({"color": "#AA0000"});
+    form_submit.classList.toggle("disabled");
+    form_submit.value = "Submit";
+  };
+  xhr.ontimeout = (e) => {
+    form_submit.classList.toggle("disabled");
+    form_submit.value = "Submit";
+    form_message.innerHTML = `
+      <div class="alert alert-danger" role="alert">
+        Login timed out. Please verify the server hostname.
+      </div>
+    `
   }
+  xhr.onerror = (e) => {
+    form_submit.classList.toggle("disabled");
+    form_submit.value = "Submit";
+    form_message.innerHTML = `
+      <div class="alert alert-danger" role="alert">
+        Failed to connect to server. Please verify the server hostname.
+      </div>
+    `
+  }
+
+  xhr.send(JSON.stringify(payload))
 }
 
 form.addEventListener('submit', loginAndFetchToken);
