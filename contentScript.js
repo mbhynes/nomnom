@@ -148,14 +148,26 @@ chrome.runtime.sendMessage({"type": "get_url_rules"}, function(response) {
   }
 });
 
+async function getDirectoryHandle() {
+  const opts = {
+    type: 'open-directory'
+  };
+  console.log("opening picker")
+  return await window.showDirectoryPicker(opts);
+}
+
 // Listen for updates to the url rules
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
+    console.log(request);
     if (request.type == "url_rules_update") {
       if (request.value.url_rules) {
         url_rules = request.value.url_rules;
       }
-    }
+    } else if (request.type == "action:export_db") {
+      console.log("Received message", request);
+      getDirectoryHandle();
+    };
   }
 );
 

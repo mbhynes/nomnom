@@ -11,7 +11,7 @@
       <nav class="navbar navbar-dark">
         <ul class="nav nav-tabs">
           <li class="nav-item">
-            <a class="nav-link" href="/settings_caption.html">Image Captions</a>
+            <a class="nav-link" href="/settings_caption.html">Captions</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="settings_image.html">Image Settings</a>
@@ -19,7 +19,10 @@
           <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="/settings_server.html">Server Settings</a>
           </li>
-       </ul>
+          <li class="nav-item">
+            <a class="nav-link" href="settings_export.html">Export</a>
+          </li>
+        </ul>
       </nav>
 
 
@@ -39,11 +42,12 @@
                 <input type="password" class="form-control" id="password" placeholder="12345" value="12345">
                 <label for="password">Password:</label>
               </div>
-              <input id="auth-submit" type="submit" value="Submit">
+              <input id="auth-submit" type="submit" value="Submit" class="btn btn-primary">
           </form> 
 
         <div class="row" id="auth-message-row">
-          <div id="auth-spinner"></div>
+          <div id="auth-message">
+          </div>
         </div>
 
       </div>

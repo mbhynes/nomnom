@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html style="width:400px;">
   <head>
-    <title>Nomnom Authentication</title>
+    <title>Image Saver Settings</title>
 
     <link href="settings.css" rel="stylesheet">
     <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,7 +12,7 @@
       <nav class="navbar navbar-dark">
         <ul class="nav nav-tabs">
           <li class="nav-item">
-            <a class="nav-link" aria-current="page" href="settings_caption.html">Image Captions</a>
+            <a class="nav-link" aria-current="page" href="settings_caption.html">Captions</a>
           </li>
           <li class="nav-item">
             <a class="nav-link active" href="settings_image.html">Image Settings</a>
@@ -20,7 +20,10 @@
           <li class="nav-item">
             <a class="nav-link" href="settings_server.html">Server Settings</a>
           </li>
-       </ul>
+          <li class="nav-item">
+            <a class="nav-link" href="settings_export.html">Export</a>
+          </li>
+        </ul>
       </nav>
 
       <div class="row">
@@ -65,6 +68,13 @@
           </textarea>
         </div>
       </div>
+
+      <div class="row my-1">
+        <div class="col">
+        <button type="button" class="btn btn-primary" id="export-button" style="min-width:5em">Save</button>
+        </div>
+      </div>
+
  
     </div>
   </body>
