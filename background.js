@@ -100,7 +100,6 @@ function upsert(database, payload, onSuccess, onError, mergeFn) {
  * {
  *   url (string):                the formatted key version of the image url, from utils.keyFromUrl
  *   initiator (string):          referring site from which the request was placed
- *   requested_at (numeric):      epoch-millisecond timestamp of the request
  *   image (Blob):                the image data
  *   view_events:                 a list of dictionary events representing views (downloads)
  *   click_events:                a list of dictionary events representing clicks on the image
@@ -184,10 +183,10 @@ function downloadHandler(details) {
     const payload = {
       url: details.url,
       initiator: details.initiator,
-      requested_at: details.timeStamp,
       view_events: [{
         "timetamp": details.timeStamp,
         "captionKey": captionKey,
+        "caption": caption,
         "count": 1,
       }],
       click_events: [],
@@ -206,6 +205,7 @@ function imageClickHandler(request, sender, sendResponse) {
     click_events: [{
       "timetamp": request.timestamp,
       "captionKey": captionKey,
+      "caption": caption,
       "count": request.count,
     }],
   }
