@@ -21,7 +21,7 @@ So if you go to website X often enough to see images and want to store/label the
 
 ### What ``nomnom`` doesn't do
 
-``nomnom`` isn't a tool like [Label Studio] <https://labelstud.io/>`_, which is cool but starts from having an image dataset. 
+``nomnom`` isn't a tool like [Label Studio](https://labelstud.io/), which is cool but starts from having an image dataset. 
 
 If you need an image labelling tool for an existing dataset, Label Studio is way better---but you could use ``nomom`` to add images to datasets for Label Studio, e.g. by streaming images from your browser to a server that writes them to a storage bucket. 
 
@@ -46,16 +46,16 @@ If you need an image labelling tool for an existing dataset, Label Studio is way
 
   - Local Image Storage
     - ✅
-    - Save images and captions to a local `IndexedDB <https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API>`_ in Chrome
+    - Save images and captions to a local [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) in Chrome
 
   - Export Local Images
     - ❌
-    - There's an upstream `bug <https://bugs.chromium.org/p/chromium/issues/detail?id=1368818>`_ in chromium that prevents exporting files into a local directory.
+    - There's an upstream [bug](https://bugs.chromium.org/p/chromium/issues/detail?id=1368818) in chromium that prevents exporting files into a local directory.
 
 
 ## Installation
 
-``nomnom`` uses the (deprecated) `Manifest version 2 <https://developer.chrome.com/docs/extensions/mv2/>`_, so to install it you must `load an unpacked extension <https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked>`_:
+``nomnom`` uses the (deprecated) [Manifest version 2](https://developer.chrome.com/docs/extensions/mv2/), so to install it you must [load an unpacked extension](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked):
 
 1. Clone the repo
 
@@ -76,6 +76,15 @@ git clone https://github.com/mbhynes/nomnom
 2. Choose "Remove" for the `nomnom` extension
 
 
+## Using ``nomnom``
+
+After you've installed and enabled the extension:
+
+- Click on the extension icon in the top right to enter an image caption and your server configuration
+- The images in the page you're browsing will have a **blue border** rendered around them if they are clickable
+- Clicking an image **while holding the shift key** will prevent the default page action from occurring, and instead treat the click as a special "label click" to denote that the clicked image should be a positive example linked to the current caption
+- To "unclick" a previously clicked image (and remove the assocation to its caption), simply hold the shift key down and clicking on the image again
+
 ## Server Configuration
 
 A remote (or local) hostname may be provided to the extension to stream images and captions to.
@@ -88,15 +97,12 @@ The server must be configured with the following endpoints:
   - Accepts: ``POST``
   - Response: ``{"token": "<an_auth_token>"}``
   - Headers: 
-
 ```
         {
           "Content-Type": "application/json",
         }
 ```
-
   - Payload: 
-
 ```
         {
           "username": "<your_username>",
@@ -105,12 +111,10 @@ The server must be configured with the following endpoints:
 ```
 
 - ``check-token/``
-
   - Purpose: check if a token is valid, returning 200 if so
   - Accepts: ``GET``
   - Response: A 200 status if the token is valid.
   - Headers: 
-
 ```
         {
           "Content-Type": "application/json",
@@ -124,17 +128,13 @@ The server must be configured with the following endpoints:
   - Accepts: ``POST``
   - Response: 200 if the image was successfully received
   - Headers:
-
 ```
         {
           "Content-Type": "application/json",
           "Authorization": "Token <an_auth_token>"
         }
 ```
-
-
   - Payload:
-
 ```
       {
         "url":          "<the_url_of_the_image>",
@@ -164,6 +164,15 @@ The server must be configured with the following endpoints:
 ```
 
 ## Implementation
+
+This extension uses a combination of a [content script](https://developer.chrome.com/docs/extensions/mv2/content_scripts/) for detecting images and responding to click interactions, and a [background script](https://developer.chrome.com/docs/extensions/mv2/background_pages/) for storing the image event data in an IndexedDB and posting it to a remote server.
+
+The heavy lifting is performed by 2 main APIs:
+
+- (background script) [chrome.webRequest.onCompleted](https://developer.chrome.com/docs/extensions/reference/webRequest/) to attach callbacks to image download events for storing a record about each viewed image 
+- (content script) [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) events to add callbacks to any `<img>` element added to the page, sending the source URL of the `<img>` via `chrome.runtime.sendMessage`
+
+The high level process is illustrated in the below sequence diagram:
 
 ```mermaid
 
