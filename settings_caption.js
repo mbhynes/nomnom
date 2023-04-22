@@ -1,5 +1,8 @@
-const caption_input = document.getElementById('caption-input');
-const caption_output = document.getElementById('caption-output');
+const captionInput = document.getElementById('caption-input');
+const captionOutput = document.getElementById('caption-output');
+
+// TODO: make these into a variable length list.
+const numTemplateVariables = 3
 const k1 = document.getElementById("key1");
 const k2 = document.getElementById("key2");
 const k3 = document.getElementById("key3");
@@ -9,61 +12,62 @@ const v3 = document.getElementById("val3");
 
 
 function renderCaption() {
-  const val = chrome.storage.local.get(["template_variables"], function (result) {
-    console.log(result);
-    var rendered = caption_input.value;
-    for (var i = 0; i < result.template_variables.length; i++) {
-      rendered = rendered.replaceAll(result.template_variables[i].key, result.template_variables[i].value);
+  chrome.storage.local.get(["templateVariables"], function (result) {
+    var rendered = captionInput.value;
+    if (result.templateVariables !== undefined) {
+      for (var i = 0; i < result.templateVariables.length; i++) {
+        rendered = rendered.replaceAll(
+          result.templateVariables[i].key,
+          result.templateVariables[i].value
+        );
+      }
     }
-    caption_output.value = rendered
+    captionOutput.value = rendered
     chrome.storage.local.set({'caption': rendered});
     chrome.runtime.sendMessage({
-      'type': 'caption_rendered', 'value': {'caption': rendered}
+      'type': 'update:caption', 'value': {'caption': rendered}
     });
   });
 }
 
 function setCaption() {
-  var caption_input = document.getElementById("caption-input");
-  chrome.storage.local.set({"caption_template": caption_input.value}, function() {
-    console.debug("Saved caption template to local storage:", caption_input.value);
+  chrome.storage.local.set({"captionTemplate": captionInput.value}, function() {
+    console.debug("Saved caption template to local storage:", captionInput.value);
   });
   renderCaption();
 }
 
 function getCaption() {
-  const val = chrome.storage.local.get(["caption_template"], function (result) {
-    var caption_input = document.getElementById("caption-input");
-    caption_input.value = result.caption_template;
+  const val = chrome.storage.local.get(["captionTemplate"], function (result) {
+    captionInput.value = result.captionTemplate;
   });
 }
 
 function setTemplateVariables() {
-  // Save the template variables to local storage in the "template_variables" key
+  // Save the template variables to local storage in the "templateVariables" key
   chrome.storage.local.set({
-    "template_variables": [
-      {key: document.getElementById("key1").value, value: document.getElementById("val1").value},
-      {key: document.getElementById("key2").value, value: document.getElementById("val2").value},
-      {key: document.getElementById("key3").value, value: document.getElementById("val3").value},
+    "templateVariables": [
+      {key: k1.value, value: v1.value},
+      {key: k2.value, value: v2.value},
+      {key: k3.value, value: v3.value},
     ]
-  }, function() {
-    console.debug("Saved template variables to local storage.");
-  });
-  renderCaption();
+  }, () => {renderCaption()});
 }
 
 function getTemplateVariables() {
-  const val = chrome.storage.local.get(["template_variables"], function (result) {
-    k1.value = result.template_variables[0].key;
-    k2.value = result.template_variables[1].key;
-    k3.value = result.template_variables[2].key;
-    v1.value = result.template_variables[0].value;
-    v2.value = result.template_variables[1].value;
-    v3.value = result.template_variables[2].value;
+  const val = chrome.storage.local.get(["templateVariables"], function (result) {
+    if (result.templateVariables !== undefined) { 
+      k1.value = result.templateVariables[0].key;
+      k2.value = result.templateVariables[1].key;
+      k3.value = result.templateVariables[2].key;
+      v1.value = result.templateVariables[0].value;
+      v2.value = result.templateVariables[1].value;
+      v3.value = result.templateVariables[2].value;
+    }
   });
 }
 
-caption_input.addEventListener('change', setCaption);
+captionInput.addEventListener('change', setCaption);
 k1.addEventListener('change', setTemplateVariables);
 k2.addEventListener('change', setTemplateVariables);
 k3.addEventListener('change', setTemplateVariables);

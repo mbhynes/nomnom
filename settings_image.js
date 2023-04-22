@@ -1,21 +1,20 @@
-var save_all_images = document.getElementById('save-all-input');
-var url_rules = document.getElementById('url-rules-input');
+var saveAllImages = document.getElementById('save-all-input');
+var urlRules = document.getElementById('url-rules-input');
 
 function setSaveAll() {
-  console.log(save_all_images);
-  const value = save_all_images.checked;
-  chrome.storage.local.set({"save_all_images": value}, function(result) {
-    console.debug("Set save_all to state:", value);
+  console.log(saveAllImages);
+  const value = saveAllImages.checked;
+  chrome.storage.local.set({"saveAllImages": value}, function(result) {
+    console.debug("Set saveAllImages to state:", value);
   });
    chrome.runtime.sendMessage({
-    'type': 'save_all_images', 'value': {'save_all_images': value}
+    'type': 'update:saveAllImages', 'value': {'saveAllImages': value}
   });
 }
 
 function getSaveAll() {
-  chrome.storage.local.get(["save_all_images"], function (result) {
-    console.log("get save_all_images:", result.save_all_images)
-    save_all_images.checked = result.save_all_images;
+  chrome.storage.local.get(["saveAllImages"], function (result) {
+    saveAllImages.checked = result.saveAllImages;
   });
 }
 
@@ -26,26 +25,26 @@ function parseUrlRules(str) {
 
 function setUrlRules() {
   var input = "<all_urls>";
-  if (url_rules.value.trim() !== "") {
-    input = url_rules.value;
+  if (urlRules.value.trim() !== "") {
+    input = urlRules.value;
   }
   const rules = parseUrlRules(input);
-  chrome.storage.local.set({"url_rules": rules}, function(result) {
+  chrome.storage.local.set({"urlRules": rules}, function(result) {
     console.debug("Set url rules to:", rules);
   });
   chrome.runtime.sendMessage({
-    'type': 'url_rules_update', 'value': {'url_rules': rules}
+    'type': 'update:urlRules', 'value': {'urlRules': rules}
   });
 }
 
 function getUrlRules() {
-  const val = chrome.storage.local.get(["url_rules"], function (result) {
-    url_rules.value = result.url_rules.join(",\n");
+  const val = chrome.storage.local.get(["urlRules"], function (result) {
+    urlRules.value = result.urlRules.join(",\n");
   });
 }
 
-save_all_images.addEventListener('change', setSaveAll);
-url_rules.addEventListener('change', setUrlRules);
+saveAllImages.addEventListener('change', setSaveAll);
+urlRules.addEventListener('change', setUrlRules);
 
 getSaveAll();
 getUrlRules();

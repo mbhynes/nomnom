@@ -6,12 +6,13 @@ const DATASTORE_KEYS = {
   "captions": "key",
 }
 
-var url_rules = ["<all_urls>"];
-var save_all_images = false;
-var should_remote_post = false;
+var urlRules = ["<all_urls>"];
+var saveAllImages = false;
+var shouldRemotePost = false;
 var hostname = "";
+var token = "";
 var caption = "";
-var caption_key = cyrb53hash("");
+var captionKey = cyrb53hash("");
 
 // Instantiate an indexedDB for the extension to store accumulating image click facts.
 var db;
@@ -43,6 +44,10 @@ function pathJoin(base, path) {
   return [base, path].join('/').replace(/\/+/g, '/');
 }
 
+/**
+ * Convenience utility to merge 2 image payload dictionaries into 1 new record
+ * that may be upserted into the database.
+ */
 function mergeImagePayloads(prev, current) {
   var updates = {
     view_events: prev.view_events.concat(current.view_events),
@@ -54,12 +59,15 @@ function mergeImagePayloads(prev, current) {
   }
 }
 
+/**
+ * Upsert (insert or update) a record into the indexedDB database.
+ */
 function upsert(database, payload, onSuccess, onError, mergeFn) {
   const obj = db.transaction([database], "readwrite").objectStore(database);
   const key = payload[DATASTORE_KEYS[database]];
   const getRequest = obj.get(key);
   getRequest.onerror = function(event) {
-    console.log("Error getting record:", event.target.errorCode);
+    console.error("Error getting record:", event.target.errorCode);
   };
   getRequest.onsuccess = function(event) {
     const result = event.target.result;
@@ -86,15 +94,33 @@ function upsert(database, payload, onSuccess, onError, mergeFn) {
 }
 
 /**
- * Save downloaded images to the indexedDB with the following schema:
+ * Store image interaction events to the indexedDB database and (optionally) a remote server.
+ *
+ * This function will store view and click event data using the following schema:
  * {
  *   url (string):                the formatted key version of the image url, from utils.keyFromUrl
  *   initiator (string):          referring site from which the request was placed
  *   requested_at (numeric):      epoch-millisecond timestamp of the request
- *   image (bytes):               the actual stored image
- *   is_clicked (boolean):        true if this image has been clicked
- *   first_clicked_at (numeric):  epoch-millisecond timestamp of the first click event
+ *   image (Blob):                the image data
+ *   view_events:                 a list of dictionary events representing views (downloads)
+ *   click_events:                a list of dictionary events representing clicks on the image
  * }
+ *
+ * The view_events and click_events fields are lists of dictionaries with the following schema:
+ * {
+ *   timestamp (numeric):         epoch-millisecond timestamp of the event
+ *   captionKey (numeric):        hash of the caption at the time of the event
+ *   count (integer):             a value of +1 or -1 representing the net difference in event count;
+ *                                a negative value encodes a count adjustment since a user may "unclick"
+ *                                an image to indicate that a previous click should be annulled.
+ * }
+ *
+ * When saving event data to the local indexedDB, the records will be upserted such that new click
+ * and view events are appended to list on existing records (an append update).
+ *
+ * However, when posting the payload to a remote server, only the incremental event payload (ie the
+ * last element of the list to append) is sent; the server is responsible for merging the new event
+ * with existing data and handling out-of-order events if this is desired.
  */
 function storeImageEventPayload(url, payload) {
   // Create a cross-header request to GET the image specified by url
@@ -119,34 +145,34 @@ function storeImageEventPayload(url, payload) {
     }
   }, false);
 
-  if (should_remote_post) {
+  if (shouldRemotePost) {
     xhr.addEventListener("load", function () {
       if (xhr.status === 200) {
         blob = xhr.response;
-        chrome.storage.local.get(["token"], function (result) {
-          var log_xhr = new XMLHttpRequest();
-          var payload_form = new FormData();
-          for (const key in payload) {
-            payload_form.set(key, payload[key]);
+        var log_xhr = new XMLHttpRequest();
+        var payload_form = new FormData();
+        for (const key in payload) {
+          payload_form.set(key, payload[key]);
+        }
+        payload_form.append(
+          'img',
+          blob,
+          `file.${blob.type.split("/").slice(-1)}`
+        );
+        endpoint = pathJoin(hostname, IMAGE_POST_ENDPOINT)
+        log_xhr.open("POST", endpoint, true);
+        log_xhr.responseType = 'json';
+        log_xhr.setRequestHeader('Authorization', 'Token ' + token);
+        log_xhr.addEventListener("load", function () {
+          if (log_xhr.status === 200) {
+            console.debug(`Successful POST for ${url} to: ${endpoint}`, log_xhr.response);
+          } else {
+            console.error(`Encountered error on POST for ${url} to ${endpoint}`, payload_form, log_xhr.response);
           }
-          payload_form.append(
-            'img',
-            blob,
-            `file.${blob.type.split("/").slice(-1)}`
-          );
-          endpoint = pathJoin(hostname, IMAGE_POST_ENDPOINT)
-          log_xhr.open("POST", endpoint, true);
-          log_xhr.responseType = 'json';
-          log_xhr.setRequestHeader('Authorization', 'Token ' + result.token);
-          log_xhr.addEventListener("load", function () {
-            if (log_xhr.status === 200) {
-              console.debug(`Successful POST for ${url} to: ${endpoint}`, log_xhr.response);
-            } else {
-              console.error(`Encountered error on POST for ${url} to ${endpoint}`, payload_form, log_xhr.response);
-            }
-          })
-          log_xhr.send(payload_form);
-        });
+        })
+        log_xhr.send(payload_form);
+      } else {
+        console.error(`XMLHttpRequest failure when downloading image:{url}:`, xhr);
       }
     }, false);
     xhr.send();
@@ -154,21 +180,21 @@ function storeImageEventPayload(url, payload) {
 };
 
 function downloadHandler(details) {
-  if (save_all_images) {
+  if (saveAllImages) {
     const payload = {
       url: details.url,
       initiator: details.initiator,
       requested_at: details.timeStamp,
       view_events: [{
         "timetamp": details.timeStamp,
-        "caption_key": caption_key,
+        "captionKey": captionKey,
         "count": 1,
       }],
       click_events: [],
     }
     storeImageEventPayload(details.url, payload);
   } else {
-    console.debug(`Not saving image ${details.url} since save_all_images=${save_all_images}`);
+    console.debug(`Not saving image ${details.url} since saveAllImages=${saveAllImages}`);
   }
 }
 
@@ -179,7 +205,7 @@ function imageClickHandler(request, sender, sendResponse) {
     view_events: [],
     click_events: [{
       "timetamp": request.timestamp,
-      "caption_key": caption_key,
+      "captionKey": captionKey,
       "count": request.count,
     }],
   }
@@ -189,40 +215,52 @@ function imageClickHandler(request, sender, sendResponse) {
 function captionUpdateHandler(request, sender, sendResponse) {
   if (request.caption !== undefined) {
     caption = request.caption;
-    caption_key = cyrb53hash(caption);
-    console.log(caption_key, caption);
-    console.log(`Received caption update: ${caption} (key: ${caption_key})`);
-    upsert("captions", {'key': caption_key, 'caption': caption, 'updated_at': Date.now()})
+    captionKey = cyrb53hash(caption);
+    console.debug(`Received caption update: ${caption} (key: ${captionKey})`);
+    upsert("captions", {'key': captionKey, 'caption': caption, 'updated_at': Date.now()})
   }
 }
 
-function settingsUpdateHandler(request, sender, sendResponse) {
+function hostnameUpdateHandler(request, sender, sendResponse) {
   if (request.hostname !== undefined) {
     hostname = request.hostname;
-    should_remote_post = (request.hostname.length > 0);
-    console.log("Received hostname update: " + hostname);
+    shouldRemotePost = (request.hostname.length > 0);
+    console.debug("Received hostname update:", hostname);
   }
 };
 
-function urlAllowUpdateHandler(request, sender, sendResponse) {
-  if (request.url_rules !== undefined) {
-    url_rules = request.url_rules;
-    console.log("Received rules update: " + url_rules);
+function tokenUpdateHandler(request, sender, sendResponse) {
+  if (request.token !== undefined) {
+    token = request.token;
+    console.debug("Received token update:", token);
+  }
+};
+
+function urlRulesUpdateHandler(request, sender, sendResponse) {
+  if (request.urlRules !== undefined) {
+    urlRules = request.urlRules;
+    updateImageDownloadListener();
+    console.log("Received rules update", urlRules);
   }
 };
 
 function saveAllUpdateHandler(request, sender, sendResponse) {
-  if (request.save_all_images !== undefined) {
-    save_all_images = request.save_all_images;
-    console.log("Received save_all update: " + save_all_images);
+  if (request.saveAllImages !== undefined) {
+    saveAllImages = request.saveAllImages;
+    console.log("Received save_all update:", saveAllImages);
   }
 };
 
+/**
+ * Rremove any existing downloadHandler from the download event 
+ * (chrome.webRequest.onCompleted), and replace it with a new
+ * listener using the current value of urlRules.
+ */
 function updateImageDownloadListener() {
   if (chrome.webRequest.onCompleted.hasListener(downloadHandler)) {
     chrome.webRequest.onCompleted.removeListener(downloadHandler);
   }
-  chrome.webRequest.onCompleted.addListener(downloadHandler, {"urls": url_rules, "types": ['image']});
+  chrome.webRequest.onCompleted.addListener(downloadHandler, {"urls": urlRules, "types": ['image']});
   chrome.webRequest.handlerBehaviorChanged();
 }
 
@@ -250,20 +288,22 @@ async function exportRequestHandler(request) {
  */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
-    console.log(`Received message: ${request.type}`, request.value);
-    if (request.type == "image_click") {
+    console.debug(`Received message: ${request.type}`, request.value);
+    if (request.type == "event:image_click") {
       imageClickHandler(request.value, sender, sendResponse);
-    } else if (request.type == "settings_update") {
-      settingsUpdateHandler(request.value, sender, sendResponse);
-    } else if (request.type == "caption_rendered") {
+    } else if (request.type == "update:hostname") {
+      hostnameUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "update:token") {
+      tokenUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "update:caption") {
       captionUpdateHandler(request.value, sender, sendResponse);
-    } else if (request.type == "url_rules_update") {
-      urlAllowUpdateHandler(request.value, sender, sendResponse);
-    } else if (request.type == "save_all_images") {
+    } else if (request.type == "update:urlRules") {
+      urlRulesUpdateHandler(request.value, sender, sendResponse);
+    } else if (request.type == "update:saveAllImages") {
       saveAllUpdateHandler(request.value, sender, sendResponse);
-    } else if (request.type == "get_url_rules") {
-      sendResponse({"url_rules": url_rules});
-    } else if (request.type == "action:export_db") {
+    } else if (request.type == "get:urlRules") {
+      sendResponse({"urlRules": urlRules});
+    } else if (request.type == "event:export_db") {
       // exportRequestHandler(request.value, sender, sendResponse).then(console.log);
       console.error("Cannot export image database due to https://bugs.chromium.org/p/chromium/issues/detail?id=1368818")
     };
@@ -273,26 +313,17 @@ chrome.runtime.onMessage.addListener(
 
 // Retrieve settings values from storage on start
 chrome.storage.local.get(["hostname"], function (result) {
-  if (result.hostname !== undefined) {
-    hostname = result.hostname;
-    should_remote_post = (result.hostname.length > 0);
-  }
-})
+  hostnameUpdateHandler(result, null, null);
+});
+chrome.storage.local.get(["token"], function (result) {
+  tokenUpdateHandler(result, null, null);
+});
 chrome.storage.local.get(["caption"], function (result) {
-  if (result.caption !== undefined) {
-    caption = result.caption;
-    caption_key = cyrb53hash(caption);
-  }
+  captionUpdateHandler(result, null, null);
 });
-chrome.storage.local.get(["save_all_images"], function (result) {
-  if (result.save_all_images !== undefined) {
-    save_all_images = result.save_all_images;
-  }
+chrome.storage.local.get(["saveAllImages"], function (result) {
+  saveAllUpdateHandler(result, null, null);
 });
-chrome.storage.local.get(["url_rules"], function (result) {
-  if (result.url_rules !== undefined) {
-    url_rules = result.url_rules;
-  }
-  // Default to all urls
-  updateImageDownloadListener();
+chrome.storage.local.get(["urlRules"], function (result) {
+  urlRulesUpdateHandler(result, null, null);
 });

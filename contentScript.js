@@ -15,7 +15,7 @@ const unlickedImageBorder = "5px solid blue";
 // Set the default rules to a blanket "*" allow list
 // The url rules must be a list of Match Pattern strings as per:
 //  https://developer.chrome.com/docs/extensions/mv2/match_patterns
-var url_rules = ["<all_urls>"];
+var urlRules = ["<all_urls>"];
 
 // Add callbacks to all DOM mutation events, such that we may find images
 // and add click callbacks once a mutation event is registered.
@@ -29,16 +29,16 @@ observer.observe(document, {
 });
 
 /**
- * Return true if the URL is valid according to the current url_rules.
+ * Return true if the URL is valid according to the current urlRules.
  */
 function isUrlAllowListed(url) {
-  if (url_rules.length == 0) {
+  if (urlRules.length == 0) {
     return true;
   }
-  if (url_rules[0] == "<all_urls>") {
+  if (urlRules[0] == "<all_urls>") {
     return true;
   }
-  for (rule of url_rules) {
+  for (rule of urlRules) {
     if ((rule == "<all_urls>") || (url.match(rule.replace('*', '.*')))) {
       return true;
     }
@@ -54,7 +54,7 @@ function processImage(img) {
   // don't mark them visited; if the allow list changes and
   // a DOM mutation occurs, we want to re-visit the image
   if (!isUrlAllowListed(img.src)) {
-    console.log(`Image ${img.src} not in the current rules list: ${url_rules}"`)
+    console.log(`Image ${img.src} not in the current rules list: ${urlRules}"`)
     return;
   }
   // Check if the image has already been visited
@@ -94,7 +94,7 @@ function processImage(img) {
 
     img.addEventListener("click", (e) => clickCallback(e), false);
   } catch (err) {
-    console.error("Error adding callback to img: " + img.src);
+    console.error(`Error adding callback to img: ${img.src}:`, err);
   }
 }
 
@@ -111,15 +111,15 @@ function mutationCallback(mutations) {
         continue;
       }
       try {
-        var all_img = node.getElementsByTagName('img');
-        if (all_img.length == 0) {
+        var images = node.getElementsByTagName('img');
+        if (images.length == 0) {
           continue;
         }
         // Patch all new image elements in the DOM such that:
         // - The image has a notable border
         // - Clicks on child elements overlaying the image are registerd on the image
         // - The extension click callback is registered on the image
-        for (const img of all_img) {
+        for (const img of images) {
           processImage(img);
         }
       } catch (err) {
@@ -145,14 +145,14 @@ function clickCallback(e) {
       img.dataset.__clicked = false;
       img.style.border = unlickedImageBorder
       chrome.runtime.sendMessage({
-        "type": "image_click",
+        "type": "event:image_click",
         "value": {"url": img.src, "count": -1, "timestamp": Date.now(), "initiator": location.href}
       })
     } else {
       img.dataset.__clicked = true;
       img.style.border = clickedImageBorder;
       chrome.runtime.sendMessage({
-        "type": "image_click",
+        "type": "event:image_click",
         "value": {"url": img.src, "count": 1, "timestamp": Date.now(), "initiator": location.href}
       })
     }
@@ -163,23 +163,23 @@ function clickCallback(e) {
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
     console.log(request);
-    if (request.type == "url_rules_update") {
-      if (request.value.url_rules) {
-        url_rules = request.value.url_rules;
+    if (request.type == "urlRules_update") {
+      if (request.value.urlRules) {
+        urlRules = request.value.urlRules;
       }
     }
   }
 );
 
-// Request the current url_rules on page load
-chrome.runtime.sendMessage({"type": "get_url_rules"}, function(response) {
-  if (response.url_rules) {
-    url_rules = response.url_rules;
+// Request the current urlRules on page load
+chrome.runtime.sendMessage({"type": "get:urlRules", "value": {}}, function(response) {
+  if (response.urlRules) {
+    urlRules = response.urlRules;
   }
 });
 
 // Process the initial set of images in the DOM
-var all_img = document.getElementsByTagName('img');
-for (const img of all_img) {
+var images = document.getElementsByTagName('img');
+for (const img of images) {
   processImage(img);
 }

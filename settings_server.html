@@ -25,10 +25,20 @@
         </ul>
       </nav>
 
-
       <div class="row">
+        <div class="mb-4">
+          <span class="input-group-text">Server Configuration</span>
+          <div class="col mx-2">
+            <p>
+              Nomnom can post image and caption data to a (local or remote) server.
+              The server must be configured as described <a href="https://github.com/mbhynes/nomnom">here</a>.
+            </p>
+          </div> 
+        </div>
+      </div> 
 
-          <form id="form-login" class="form-floating">
+      <div class="row py-0">
+          <form id="form-login" class="form">
               <div class="form-floating">
                 <input type="url" class="form-control" id="hostname" placeholder="https://yoursite.com/api" value="https://yoursite.com/api">
                 <label for="hostname">Hostname:</label>
@@ -39,7 +49,7 @@
                 <label for="username">Username:</label>
               </div>
               <div class="form-floating">
-                <input type="password" class="form-control" id="password" placeholder="12345" value="12345">
+                <input type="password" class="form-control" id="password" placeholder="" value="">
                 <label for="password">Password:</label>
               </div>
               <input id="auth-submit" type="submit" value="Submit" class="btn btn-primary">
