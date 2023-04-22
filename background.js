@@ -30,13 +30,13 @@ request.onerror = function(event) {
 request.onupgradeneeded = function(event) {
   var db = event.target.result;
   if (!db.objectStoreNames.contains('images')) {
-    var obj = db.createObjectStore('images', {keyPath: 'url'});
+    var obj = db.createObjectStore('images', {keyPath: DATASTORE_KEYS['images']});
     obj.createIndex(DATASTORE_KEYS['images'], DATASTORE_KEYS['images'], {unique: true});
   }
   if (!db.objectStoreNames.contains('captions')) {
-    var obj = db.createObjectStore('captions', {keyPath: 'key'});
+    var obj = db.createObjectStore('captions', {keyPath: DATASTORE_KEYS['captions']});
     // create an index on the string key
-    obj.createIndex(DATASTORE_KEYS['images'], DATASTORE_KEYS['images'], {unique: true});
+    obj.createIndex(DATASTORE_KEYS['captions'], DATASTORE_KEYS['captions'], {unique: true});
   }
 };
 
