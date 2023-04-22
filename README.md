@@ -9,7 +9,7 @@ The goal is to enable rapid creation of image datasets from the most abundant so
 
 Your image and caption data is streamed to a server of your choice, enabling you to do funky shit like building an online data pipeline to stream images you like/dislike into a [GAN](https://en.wikipedia.org/wiki/Generative_adversarial_network), if that's the kind of thing you're into on a Saturday night.
 
-.. image:: static/nomnom3.gif
+![Screenshot of the nomnom extension](static/nomnom3.gif)
 
 ## Goals
 
@@ -96,14 +96,13 @@ The server must be configured with the following endpoints:
   - Purpose: authenticate a user and return an auth token
   - Accepts: ``POST``
   - Response: ``{"token": "<an_auth_token>"}``
-  - Headers: 
+  - Headers & Payload: 
 ```
+    Header:
         {
           "Content-Type": "application/json",
         }
-```
-  - Payload: 
-```
+    Payload: 
         {
           "username": "<your_username>",
           "password": "<your_password>",
@@ -127,40 +126,39 @@ The server must be configured with the following endpoints:
   - Purpose: receive an image and caption data
   - Accepts: ``POST``
   - Response: 200 if the image was successfully received
-  - Headers:
+  - Headers & Payload:
 ```
+    Header:
         {
           "Content-Type": "application/json",
           "Authorization": "Token <an_auth_token>"
         }
-```
-  - Payload:
-```
-      {
-        "url":          "<the_url_of_the_image>",
-        "initiator":    "<referring site from which the request was placed>",
-        "img":          <Blob>,
-        "view_events":  [
-          {
-            "timestamp":    "<epoch-millisecond timestamp of the event>",
-            "caption":      "<string caption for the image>",
-            "captionKey":   "<a local hash of the caption for local correspondence in the IndexedDB>",
-            "count":        <an integer value of +1 or -1 representing the net difference in event count;
-                            a negative value encodes a count adjustment since a user may "unclick"
-                            an image to indicate that a previous click should be annulled.>
-          },
-        ]
-        "click_events": [
-          {
-            "timestamp":    "<epoch-millisecond timestamp of the event>",
-            "caption":      "<string caption for the image>",
-            "captionKey":   "<a local hash of the caption for local correspondence in the IndexedDB>",
-            "count":        <an integer value of +1 or -1 representing the net difference in event count;
-                            a negative value encodes a count adjustment since a user may "unclick"
-                            an image to indicate that a previous click should be annulled.>
-          },
-        ]
-      }
+    Payload:
+        {
+          "url":          "<the_url_of_the_image>",
+          "initiator":    "<referring site from which the request was placed>",
+          "img":          <Blob>,
+          "view_events":  [
+            {
+              "timestamp":    "<epoch-millisecond timestamp of the event>",
+              "caption":      "<string caption for the image>",
+              "captionKey":   "<a local hash of the caption for local correspondence in the IndexedDB>",
+              "count":        <an integer value of +1 or -1 representing the net difference in event count;
+                              a negative value encodes a count adjustment since a user may "unclick"
+                              an image to indicate that a previous click should be annulled.>
+            },
+          ]
+          "click_events": [
+            {
+              "timestamp":    "<epoch-millisecond timestamp of the event>",
+              "caption":      "<string caption for the image>",
+              "captionKey":   "<a local hash of the caption for local correspondence in the IndexedDB>",
+              "count":        <an integer value of +1 or -1 representing the net difference in event count;
+                              a negative value encodes a count adjustment since a user may "unclick"
+                              an image to indicate that a previous click should be annulled.>
+            },
+          ]
+        }
 ```
 
 ## Implementation
