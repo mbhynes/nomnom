@@ -18,12 +18,16 @@ Goals
 What ``nomnom`` does
 ~~~~~~~~~~~~~~~~~~~~
 
-``nomnom`` is all about image (ingestion) and labelling based on user browsing behaviour on websites you chooses to monitor. So if you go to website X often enough to see images and want to store/label them for fine-tuning a stable diffusion model, you might have a use case for it. These `weirdos <https://www.unstability.ai/>`_ probably do.
+``nomnom`` is all about image ingestion and labelling based on user browsing behaviour on websites you chooses to monitor. 
+
+So if you go to website X often enough to see images and want to store/label them for fine-tuning a stable diffusion model, you might have a use case for it. These `weirdos <https://www.unstability.ai/>`_ probably do.
 
 What ``nomnom`` doesn't do
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``nomnom`` isn't a tool like `Label Studio <https://labelstud.io/>`_, which is cool but starts from having an image dataset. If you need an image labelling tool for an existing dataset, Label Studio is way better---but you could use ``nomom`` as a tool to add images to datasets for Label Studio, e.g. by streaming images from your browser to a server that writes them to a storage bucket. 
+``nomnom`` isn't a tool like `Label Studio <https://labelstud.io/>`_, which is cool but starts from having an image dataset. 
+
+If you need an image labelling tool for an existing dataset, Label Studio is way better---but you could use ``nomom`` to add images to datasets for Label Studio, e.g. by streaming images from your browser to a server that writes them to a storage bucket. 
 
 
 Features
@@ -65,7 +69,7 @@ Features
 Installation
 ------------
 
-`nomnom` is a chrome extension that uses the (deprecated) `Manifest version 2 <https://developer.chrome.com/docs/extensions/mv2/>`_, so to install it you must `load an unpacked extension <https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked>`_:
+``nomnom`` uses the (deprecated) `Manifest version 2 <https://developer.chrome.com/docs/extensions/mv2/>`_, so to install it you must `load an unpacked extension <https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked>`_:
 
 1. Clone the repo
 
@@ -73,7 +77,7 @@ Installation
 
        git clone https://github.com/mbhynes/nomnom
 
-2. Open `chrome://extensions/ <chrome://extensions/>`_ in your browser
+2. Open ``chrome://extensions/`` in your browser
 
 3. At the top right, check *"Developer Mode"*
 
@@ -81,7 +85,7 @@ Installation
 
 Uninstallation
 ~~~~~~~~~~~~~~~
-1. Open `chrome://extensions/ <chrome://extensions/>`_ in your browser
+1. Open ``chrome://extensions/`` in your browser
 
 2. Choose "Remove" for the `nomnom` extension
 
@@ -95,21 +99,52 @@ The server must be configured with the following endpoints:
 
   - Purpose: authenticate a user and return an auth token
   - Accepts: ``POST``
-  - Payload: ``{"username": "<your_username>", "password": "<your_password>"}``
   - Response: ``{"token": "<an_auth_token>"}``
+  - Headers: 
+
+      .. code-block::
+
+        {
+          "Content-Type": "application/json",
+        }
+
+  - Payload: 
+      .. code-block::
+
+        {
+          "username": "<your_username>",
+          "password": "<your_password>",
+        }
 
 - ``check-token/``
 
   - Purpose: check if a token is valid, returning 200 if so
   - Accepts: ``GET``
-  - Headers: ``{"Content-Type": "application/json", "Authorization": "Token <an_auth_token>"}``
   - Response: A 200 status if the token is valid.
+  - Headers: 
+
+      .. code-block::
+
+        {
+          "Content-Type": "application/json",
+          "Authorization": "Token <an_auth_token>"
+        }
 
 - ``image/``
 
   - Purpose: receive an image and caption data
   - Accepts: ``POST``
-  - Headers: ``{"Content-Type": "application/json", "Authorization": "Token <an_auth_token>"}``
+  - Response: 200 if the image was successfully received
+  - Headers:
+
+      .. code-block::
+
+        {
+          "Content-Type": "application/json",
+          "Authorization": "Token <an_auth_token>"
+        }
+
+
   - Payload:
 
     .. code-block::
@@ -139,6 +174,31 @@ The server must be configured with the following endpoints:
           },
         ]
       }
+
+Implementation
+--------------
+
+.. mermaid::
+
+  sequenceDiagram
+      participant user/client
+      participant content_script.js
+      participant background.js
+      participant server
+
+      user/client->>background.js: chrome.webRequest.onCompleted() for each <img>
+      opt Emit View Event
+        background.js-->>server: POST {img: <img>, caption: "<caption>"}
+      end
+
+      par For each <img>
+         content_script.js->>content_script.js: <img>.addEventListener("click")
+      end
+      user/client->>content_script.js: click <img>
+      content_script.js->>background.js: chrome.runtime.sendMessage(<img>)
+      opt Emit Click Event
+        background.js-->>server: POST {img: <img>, caption: "<caption>"}
+      end
 
 
 Why the name ``nomnom``?
