@@ -182,14 +182,17 @@ The high level process is illustrated in the below sequence diagram:
       participant background.js
       participant server
 
+      user/client->>content_script.js: load web page
+
+      par For each <img>
+         content_script.js->>content_script.js: <img>.addEventListener("click")
+      end
+
       user/client->>background.js: chrome.webRequest.onCompleted() for each <img>
       opt Emit View Event
         background.js-->>server: POST {img: <img>, caption: "<caption>"}
       end
 
-      par For each <img>
-         content_script.js->>content_script.js: <img>.addEventListener("click")
-      end
       user/client->>content_script.js: click <img>
       content_script.js->>background.js: chrome.runtime.sendMessage(<img>)
       opt Emit Click Event
