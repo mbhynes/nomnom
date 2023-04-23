@@ -2,10 +2,10 @@
 
 ``nomnom`` is a chrome extension that builds image label/caption datasets for machine learning from *any* images your browser renders as you browse the internet.
 
-The goal is to enable rapid creation of image datasets from the most abundant source (other people's websites) just by clicking (or not clicking) on images in a web page, to enable:
+The goal is to enable rapid creation of image datasets from the most abundant source (other people's websites) just by clicking (or not clicking) on images in a web page: 
 
-- quick generation of binary classification datasets (click vs no click) by dusing all images in a page as a "0 label"
-- saving and labelling *only* clicked images with custom, templatable captions
+- quick generation of binary classification datasets (click vs no click) by using all images in a page as a "0 label" and clicked images as a "1 label"
+- saving and labelling clicked images with custom, templatable captions
 
 Your image and caption data is streamed to a server of your choice, enabling you to do funky shit like building an online data pipeline to stream images you like/dislike into a [GAN](https://en.wikipedia.org/wiki/Generative_adversarial_network), if that's the kind of thing you're into on a Saturday night.
 
@@ -15,15 +15,15 @@ Your image and caption data is streamed to a server of your choice, enabling you
 
 ### What ``nomnom`` does
 
-``nomnom`` is all about image ingestion and labelling based on user browsing behaviour on websites you chooses to monitor. 
+``nomnom`` is all about image ingestion and labelling based on user browsing behaviour on websites you chooses to monitor. You can plug it into any existing browser-based process that you'd like to get captioned training data for, without altering that process.
 
-So if you go to website X often enough to see images and want to store/label them for fine-tuning a stable diffusion model, you might have a use case for it. These [weirdos](https://www.unstability.ai/) probably do.
+So if you go to website X often enough to see images and want to store/label them for fine-tuning a stable diffusion model, you might have a use case for it. These [weirdos](https://www.unstability.ai/) probably do. But also any teams that want a simple way to bootstrap a browser to collect custom caption data.
 
 ### What ``nomnom`` doesn't do
 
 ``nomnom`` isn't a tool like [Label Studio](https://labelstud.io/), which is cool but starts from having an image dataset. 
 
-If you need an image labelling tool for an existing dataset, Label Studio is way better---but you could use ``nomom`` to add images to datasets for Label Studio, e.g. by streaming images from your browser to a server that writes them to a storage bucket. 
+If you need an image labelling tool for an existing dataset, Label Studio is way better---but you could use ``nomom`` to collect and prelabel images to process later with tools like Label Studio, e.g. by streaming images from your browser to a server that writes them to a storage bucket. 
 
 
 ## Features
@@ -202,3 +202,13 @@ The high level process is illustrated in the below sequence diagram:
 ## Why the name ``nomnom``?
 
 It's the sound you make as you gobble up images, *nomnomnomnom*.
+
+## Improvements / TODOs
+
+- Link to an example server implementation with views and routes for the token and image endpoints described above
+
+- Add local file export to dump the IndexedDB database (images and captions) once [Chromium #1368818](https://bugs.chromium.org/p/chromium/issues/detail?id=1368818) is fixed
+
+- Add a image dimension bandpass filter to exclude images based on user-specified maximum and minimum dimensions  
+
+- Generalize the template variables to a dynamic input list and allow users to add & delete entries
