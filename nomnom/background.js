@@ -98,7 +98,7 @@ function upsert(database, payload, onSuccess, onError, mergeFn) {
  *
  * This function will store view and click event data using the following schema:
  * {
- *   url (string):                the formatted key version of the image url, from utils.keyFromUrl
+ *   url (string):                the image url
  *   initiator (string):          referring site from which the request was placed
  *   image (Blob):                the image data
  *   view_events:                 a list of dictionary events representing views (downloads)
@@ -125,7 +125,6 @@ function storeImageEventPayload(url, payload) {
   // Create a cross-header request to GET the image specified by url
   // This should not actually result in a request over the network,
   // since the image should be retrieved from the browser cache.
-  const key = keyFromUrl(url);
   var xhr = new XMLHttpRequest(),
       blob;
   xhr.open("GET", url, true);
