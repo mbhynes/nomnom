@@ -22,7 +22,9 @@ function renderCaption() {
         );
       }
     }
-    captionOutput.value = rendered
+    if (rendered !== undefined) {
+      captionOutput.value = rendered
+    }
     chrome.storage.local.set({'caption': rendered});
     chrome.runtime.sendMessage({
       'type': 'update:caption', 'value': {'caption': rendered}
@@ -39,7 +41,9 @@ function setCaption() {
 
 function getCaption() {
   const val = chrome.storage.local.get(["captionTemplate"], function (result) {
-    captionInput.value = result.captionTemplate;
+    if (result.captionTemplate !== undefined) {
+      captionInput.value = result.captionTemplate;
+    }
   });
 }
 
