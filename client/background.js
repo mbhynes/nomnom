@@ -122,6 +122,7 @@ function upsert(database, payload, onSuccess, onError, mergeFn) {
  * with existing data and handling out-of-order events if this is desired.
  */
 function storeImageEventPayload(url, payload) {
+  console.debug(`Storing image event payload for ${url}:`, payload);
   // Create a cross-header request to GET the image specified by url
   // This should not actually result in a request over the network,
   // since the image should be retrieved from the browser cache.
@@ -173,8 +174,8 @@ function storeImageEventPayload(url, payload) {
         console.error(`XMLHttpRequest failure when downloading image:{url}:`, xhr);
       }
     }, false);
-    xhr.send();
   }
+  xhr.send();
 };
 
 function downloadHandler(details) {
@@ -326,3 +327,5 @@ chrome.storage.local.get(["saveAllImages"], function (result) {
 chrome.storage.local.get(["urlRules"], function (result) {
   urlRulesUpdateHandler(result, null, null);
 });
+
+updateImageDownloadListener();
