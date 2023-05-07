@@ -8,10 +8,3 @@ check_requires ${REQUIRES[@]}
 python3 -m venv .venv
 source $ROOT_DIR/.venv/bin/activate || die "Failed to activate virtualenv"
 pip3 install -r $ROOT_DIR/requirements.txt || die "Failed to install python requirements"
-
-if [ ! -d "$SITE_NAME" ]; then
-  log "Creating django project $SITE_NAME"
-  django-admin startproject "$SITE_NAME" || die "Failed to create django project"
-  cd "$SITE_NAME" && python3 manage.py startapp nomnom || die "Failed to create nonom app"
-  mv "$SITE_NAME" site
-fi
