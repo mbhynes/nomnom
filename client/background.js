@@ -23,6 +23,7 @@ request.onerror = function(event) {
 request.onsuccess = function(event) {
   db = event.target.result;
   console.debug("Opened database:", db);
+  setupStateOnStart();
 };
 request.onerror = function(event) {
   console.error("Failed to open database")
@@ -30,11 +31,11 @@ request.onerror = function(event) {
 request.onupgradeneeded = function(event) {
   var db = event.target.result;
   if (!db.objectStoreNames.contains('images')) {
-    var obj = db.createObjectStore('images', {keyPath: DATASTORE_KEYS['images']});
+    var obj = db.createObjectStore('images', {"keyPath": DATASTORE_KEYS['images']});
     obj.createIndex(DATASTORE_KEYS['images'], DATASTORE_KEYS['images'], {unique: true});
   }
   if (!db.objectStoreNames.contains('captions')) {
-    var obj = db.createObjectStore('captions', {keyPath: DATASTORE_KEYS['captions']});
+    var obj = db.createObjectStore('captions', {"keyPath": DATASTORE_KEYS['captions']});
     // create an index on the string key
     obj.createIndex(DATASTORE_KEYS['captions'], DATASTORE_KEYS['captions'], {unique: true});
   }
@@ -93,6 +94,19 @@ function upsert(database, payload, onSuccess, onError, mergeFn) {
   };
 }
 
+function payloadToFormData(payload, blob) {
+    let form = new FormData();
+    form.append("image", blob, `file.${blob.type.split("/").slice(-1)}`);
+    form.append("url", payload["url"]);
+    form.append("event_type", payload["event"]["event_type"]);
+    form.append("initiator", payload["event"]["initiator"]);
+    form.append("timestamp", payload["event"]["timestamp"]);
+    form.append("count", payload["event"]["count"]);
+    form.append("caption", JSON.stringify(payload["event"]["caption"]));
+    console.log("form fields:");
+    return form;
+}
+
 /**
  * Store image interaction events to the indexedDB database and (optionally) a remote server.
  *
@@ -134,10 +148,17 @@ function storeImageEventPayload(url, payload) {
   xhr.addEventListener("load", function () {
     if (xhr.status === 200) {
       blob = xhr.response;
-      let record = {
-        ...payload,
-        ...{"image": blob}
+      var record = {
+        "url": url,
+        "img": blob,
       };
+      if (payload["event"]["event_type"] == "click") {
+        record["click_events"] = [payload["event"]];
+        record["view_events"] = [];
+      } else if (payload["event"]["event_type"] == "view") {
+        record["click_events"] = [];
+        record["view_events"] = [payload["event"]];
+      }
       upsert('images', record, () => {}, (e) => console.error("Failed to upsert image:", e), mergeImagePayloads);
     } else {
       console.error("Failed to retrieve image:", url);
@@ -149,15 +170,10 @@ function storeImageEventPayload(url, payload) {
       if (xhr.status === 200) {
         blob = xhr.response;
         var log_xhr = new XMLHttpRequest();
-        var payload_form = new FormData();
-        for (const key in payload) {
-          payload_form.set(key, payload[key]);
+        const payload_form = payloadToFormData(payload, blob);
+        for (var pair of payload_form.entries()) {
+          console.log(pair[0]+ ', ' + pair[1]); 
         }
-        payload_form.append(
-          'img',
-          blob,
-          `file.${blob.type.split("/").slice(-1)}`
-        );
         endpoint = pathJoin(hostname, IMAGE_POST_ENDPOINT)
         log_xhr.open("POST", endpoint, true);
         log_xhr.responseType = 'json';
@@ -181,15 +197,17 @@ function storeImageEventPayload(url, payload) {
 function downloadHandler(details) {
   if (saveAllImages) {
     const payload = {
-      url: details.url,
-      initiator: details.initiator,
-      view_events: [{
-        "timetamp": details.timeStamp,
-        "captionKey": captionKey,
-        "caption": caption,
+      "url": details.url,
+      "event": {
+        "caption": {
+          "text": caption,
+          "key": captionKey
+        },
+        "event_type": "view",
+        "initiator": details.initiator,
+        "timestamp": details.timeStamp,
         "count": 1,
-      }],
-      click_events: [],
+      }
     }
     storeImageEventPayload(details.url, payload);
   } else {
@@ -199,15 +217,17 @@ function downloadHandler(details) {
 
 function imageClickHandler(request, sender, sendResponse) {
   const payload = {
-    url: request.url,
-    initiator: request.initiator,
-    view_events: [],
-    click_events: [{
-      "timetamp": request.timestamp,
-      "captionKey": captionKey,
-      "caption": caption,
+    "url": request.url,
+    "event": {
+      "caption": {
+        "text": caption,
+        "key": captionKey,
+      },
+      "event_type": "click",
+      "initiator": request.initiator,
+      "timestamp": request.timestamp,
       "count": request.count,
-    }],
+    },
   }
   storeImageEventPayload(request.url, payload);
 }
@@ -217,7 +237,7 @@ function captionUpdateHandler(request, sender, sendResponse) {
     caption = request.caption;
     captionKey = cyrb53hash(caption);
     console.debug(`Received caption update: ${caption} (key: ${captionKey})`);
-    upsert("captions", {'key': captionKey, 'caption': caption, 'updated_at': Date.now()})
+    upsert("captions", {'key': captionKey, 'caption': caption, 'updated_at': new Date()})
   }
 }
 
@@ -281,6 +301,27 @@ async function exportRequestHandler(request) {
   // - add some watermark metadata in the db for incremental CDC extract
 }
 
+function setupStateOnStart() {
+  // Retrieve settings values from storage on start
+  chrome.storage.local.get(["hostname"], function (result) {
+    hostnameUpdateHandler(result, null, null);
+  });
+  chrome.storage.local.get(["token"], function (result) {
+    tokenUpdateHandler(result, null, null);
+  });
+  chrome.storage.local.get(["caption"], function (result) {
+    captionUpdateHandler(result, null, null);
+  });
+  chrome.storage.local.get(["saveAllImages"], function (result) {
+    saveAllUpdateHandler(result, null, null);
+  });
+  chrome.storage.local.get(["urlRules"], function (result) {
+    urlRulesUpdateHandler(result, null, null);
+  });
+
+  updateImageDownloadListener();
+}
+
 /**
  * Listener to handle click attribution events on the image records.
  * This function will updated the indexedDB records to record whether
@@ -307,25 +348,5 @@ chrome.runtime.onMessage.addListener(
       // exportRequestHandler(request.value, sender, sendResponse).then(console.log);
       console.error("Cannot export image database due to https://bugs.chromium.org/p/chromium/issues/detail?id=1368818")
     };
-
   }
 );
-
-// Retrieve settings values from storage on start
-chrome.storage.local.get(["hostname"], function (result) {
-  hostnameUpdateHandler(result, null, null);
-});
-chrome.storage.local.get(["token"], function (result) {
-  tokenUpdateHandler(result, null, null);
-});
-chrome.storage.local.get(["caption"], function (result) {
-  captionUpdateHandler(result, null, null);
-});
-chrome.storage.local.get(["saveAllImages"], function (result) {
-  saveAllUpdateHandler(result, null, null);
-});
-chrome.storage.local.get(["urlRules"], function (result) {
-  urlRulesUpdateHandler(result, null, null);
-});
-
-updateImageDownloadListener();
