@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+source $(dirname $0)/../dev
+
+export DEBUG=True
+
+REQUIRES=('ROOT_DIR' 'DEBUG' 'SITE_NAME')
+check_requires ${REQUIRES[@]}
+
+source $ROOT_DIR/.venv/bin/activate
+cd "site" && python3 manage.py $*
+exit $?
