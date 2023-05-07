@@ -1,0 +1,7 @@
+.env
+.venv/
+*.swo
+*.swp
+*.pyc
+*.DS_Store
+build/
