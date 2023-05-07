@@ -45,6 +45,7 @@ class CaptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Caption
         fields = ["text", "key"]
+        extra_kwargs = {"key": {"required": False}}
 
     def get_or_create(self, **kwargs):
         id = Caption.hash_text(self.validated_data['text'])

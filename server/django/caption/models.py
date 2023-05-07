@@ -31,7 +31,7 @@ def make_image_path(instance, filename):
 
 class MaybeDataUrlValidator(URLValidator):
     def __call__(self, value):
-        # skip validation if value matches a Data Url regex
+        # skip validation if value matches a half-assed Data Url regex
         if re.match(r'^data:[^;]+;base64,', value):
             return
         super().__call__(value)

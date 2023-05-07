@@ -53,7 +53,7 @@ If you need an image labelling tool for an existing dataset, Label Studio is way
     - There's an upstream [bug](https://bugs.chromium.org/p/chromium/issues/detail?id=1368818) in chromium that prevents exporting files into a local directory.
 
 
-## Installation
+## Installing the Extension
 
 ``nomnom`` uses the (deprecated) [Manifest version 2](https://developer.chrome.com/docs/extensions/mv2/), so to install it you must [load an unpacked extension](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked):
 
@@ -69,7 +69,7 @@ git clone https://github.com/mbhynes/nomnom
 
 4. At the left, click *"Load unpacked"* and select the directory you just cloned into
 
-### Uninstallation
+### Uninstalling
 
 1. Open ``chrome://extensions/`` in your browser
 
@@ -85,9 +85,46 @@ After you've installed and enabled the extension:
 - Clicking an image **while holding the shift key** will prevent the default page action from occurring, and instead treat the click as a special "label click" to denote that the clicked image should be a positive example linked to the current caption
 - To "unclick" a previously clicked image (and remove the assocation to its caption), simply hold the shift key down and clicking on the image again
 
+### Running the Example Server
+
+There is a simple `django` server included in this repository with the endpoints required to post images from the extension client, located at [server/django](server/django).
+
+The server is configured to use a local `sqlite` database, and may be run as follows:
+
+1. Navigate to the `server/`
+```bash
+cd server
+```
+
+2. Install the requirements ([server/requirements.txt](server/requirements.txt))
+
+```bash
+ ./dev up
+```
+
+3. Create a [super]user account
+```bash
+./dev manage createsuperuser
+```
+
+4. Run the server locally
+```bash
+./dev manage runserver
+```
+
+5. Set up the `nomnom` server settings:
+
+- Hostname: `http://127.0.0.1:8000/caption`
+- Username: (the username you provided to `./dev manage createsuperuser`)
+- Password: (the password you provided to `./dev manage createsuperuser`)
+
+The images posted to the running server will be saved to the directory `./server/django/media/` on your local machine, and the `sqlite` caption database will be located at `./server/django/db.sqlite3`.
+
+![Screenshot of the configured extension server settings](static/server_settings_screenshot.png)
+
 ## Server Configuration
 
-A remote (or local) hostname may be provided to the extension to stream images and captions to.
+Any remote (or local) hostname may be provided to the extension to stream images and captions to.
 
 The server must be configured with the following endpoints:
 
@@ -137,31 +174,16 @@ The server must be configured with the following endpoints:
         {
           "url":          "<the_url_of_the_image>",
           "initiator":    "<referring site from which the request was placed>",
-          "img":          <Blob>,
-          "view_events":  [
-            {
-              "timestamp":    "<epoch-millisecond timestamp of the event>",
-              "caption":      "<string caption for the image>",
-              "captionKey":   "<a local hash of the caption for local correspondence in the IndexedDB>",
-              "count":        <an integer value of +1 or -1 representing the net difference in event count;
-                              a negative value encodes a count adjustment since a user may "unclick"
-                              an image to indicate that a previous click should be annulled.>
-            },
-          ]
-          "click_events": [
-            {
-              "timestamp":    "<epoch-millisecond timestamp of the event>",
-              "caption":      "<string caption for the image>",
-              "captionKey":   "<a local hash of the caption for local correspondence in the IndexedDB>",
-              "count":        <an integer value of +1 or -1 representing the net difference in event count;
-                              a negative value encodes a count adjustment since a user may "unclick"
-                              an image to indicate that a previous click should be annulled.>
-            },
-          ]
+          "image":          <Blob>,
+          "timestamp":    "<epoch-millisecond timestamp of the event>",
+          "caption":      '{"caption": "<JSON-encoded string caption>", "key": <The client's integer key>}',
+          "count":        <an integer value of +1 or -1 representing the net difference in event count;
+                          a negative value encodes a count adjustment since a user may "unclick"
+                          an image to indicate that a previous click should be annulled.>
         }
 ```
 
-## Implementation
+## Implementation Notes
 
 This extension uses a combination of a [content script](https://developer.chrome.com/docs/extensions/mv2/content_scripts/) for detecting images and responding to click interactions, and a [background script](https://developer.chrome.com/docs/extensions/mv2/background_pages/) for storing the image event data in an IndexedDB and posting it to a remote server.
 

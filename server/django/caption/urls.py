@@ -1,14 +1,12 @@
 from django.shortcuts import render
-from django.urls import include, path, re_path
+from django.urls import include, path
 
 from rest_framework.authtoken import views as rest_auth_views
-from rest_framework import authentication, permissions, routers
+from rest_framework import routers
 
 from . import views
 
 router = routers.SimpleRouter()
-# router.register(r'image', views.ImageView, basename='image')
-# router.register(r'apikeys', views.ApiKeyViewSet)
 
 urlpatterns = [
     path('auth-token/', rest_auth_views.obtain_auth_token),

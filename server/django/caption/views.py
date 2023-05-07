@@ -1,7 +1,5 @@
 import logging
 
-import urllib
-
 import rest_framework as rf
 from rest_framework import authentication, permissions, parsers, renderers
 from rest_framework.response import Response
@@ -41,10 +39,10 @@ class ImageView(APIView):
     http_method_names = ['post']
 
     def post(self, request):
-        status = rf.status.HTTP_400_BAD_REQUEST
         result = None
+        status = rf.status.HTTP_400_BAD_REQUEST
+        serializer = ClientImageEndpointSerializer(data=request.data, context={'request': request})
         try:
-            serializer = ClientImageEndpointSerializer(data=request.data, context={'request': request})
             serializer.is_valid(raise_exception=True)
             instance = serializer.save(user=request.user)
             result = ImageCaptionSerializer(instance, context={'request': request}).data
