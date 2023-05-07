@@ -9,5 +9,5 @@ REQUIRES=('ROOT_DIR' 'DEBUG' 'SITE_NAME')
 check_requires ${REQUIRES[@]}
 
 source $ROOT_DIR/.venv/bin/activate
-cd "server" && python3 manage.py $*
+cd "django" && python3 manage.py $*
 exit $?
