@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+SCRIPT_NAME=$(basename $0)
+
+log() {
+  echo "$SCRIPT_NAME: $(date): INFO: $*" 1>&2
+}
+error() {
+  echo "$SCRIPT_NAME: $(date): ERROR: $*" 1>&2
+}
+die() {
+  error "$*"
+  exit 1
+}
+
+check_requires() {
+  log "Running $SCRIPT_NAME with env:"
+  for r in $@; do
+    if ! printenv "$r" > /dev/null; then
+      die "Could not find required env var: '$r'"
+    fi
+    echo "   $r=$(printenv $r)" 1>&2
+  done
+}
+
+export_env() {
+  export ROOT_DIR=$(dirname $SCRIPT_NAME)
+  export SITE_NAME="server"
+  # Read environment variables from the root .env file, if it exists.
+  # N.B. that our .env isn't sensitive security-wise; it's just prudent
+  # to keep GCP project and region strings out of the VCS.
+  if [ -r "$ROOT_DIR/.env" ]; then
+    log "Reading contents of private $ROOT_DIR/.env ..."
+    source "$ROOT_DIR/.env"
+  fi
+}
+
+run() {
+  if [ -z "$1" ] || [[ "$1" == 'help' ]]; then
+    echo "$SCRIPT_NAME subcommands: $(ls $ROOT_DIR/bin/dev-* | xargs basename | sed -r -e 's/^dev-//' | tr '\n' ' ')"
+  else
+    script="$ROOT_DIR/bin/dev-$1"
+    if [ -x "$script" ]; then
+      shift
+      "$script" $*
+    else
+      die "Provided subcommand: '$1' is not valid; no executable script $script"
+    fi
+  fi
+  return $?
+}
+
+# Only run & exit if this script is called directly; run & exit will
+# not be called if dev is being sourced with '.' or 'source'
+if [ "${BASH_SOURCE[0]}" -ef "$0" ]; then
+  export_env
+  run $*
+  exit $?
+fi

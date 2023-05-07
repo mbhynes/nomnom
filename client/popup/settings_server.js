@@ -136,7 +136,7 @@ function loginAndFetchToken(e) {
       chrome.storage.local.set({"token": xhr.response["token"]}, function() {
         console.debug("Saved token to local storage:", xhr.response["token"]);
         chrome.runtime.sendMessage({
-          'type': 'update:token', 'value': {'token': token}
+          'type': 'update:token', 'value': {'token': xhr.response["token"]}
         });
       });
       setBadgeState("success");

@@ -146,14 +146,14 @@ function clickCallback(e) {
       img.style.border = unlickedImageBorder
       chrome.runtime.sendMessage({
         "type": "event:image_click",
-        "value": {"url": img.src, "count": -1, "timestamp": Date.now(), "initiator": location.href}
+        "value": {"url": img.src, "count": -1, "timestamp": new Date(), "initiator": location.href}
       })
     } else {
       img.dataset.__clicked = true;
       img.style.border = clickedImageBorder;
       chrome.runtime.sendMessage({
         "type": "event:image_click",
-        "value": {"url": img.src, "count": 1, "timestamp": Date.now(), "initiator": location.href}
+        "value": {"url": img.src, "count": 1, "timestamp": new Date(), "initiator": location.href}
       })
     }
   }

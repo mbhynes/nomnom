@@ -1,0 +1,5 @@
+Django==4.1.2
+django-cors-headers
+djangorestframework
+Pillow
+drf_extra_fields

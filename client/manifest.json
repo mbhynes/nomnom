@@ -28,6 +28,6 @@
     "all_frames": true
   }],
   "browser_action": {
-    "default_popup": "settings_caption.html"
+    "default_popup": "popup/settings_caption.html"
   }
 }
